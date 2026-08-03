@@ -18,11 +18,16 @@ import { fileURLToPath } from 'url';
 
 import { createLogger, requestLogger } from './logger.js';
 import { hydrateFromDisk } from './control-state.js';
+import { installFetchDiagnostics } from './fetch-diagnostics.js';
 import storeRoutes from './routes/store.js';
 import routingRoutes from './routes/routing.js';
 import pspRoutes from './routes/psps.js';
 
 const log = createLogger('server');
+
+// Surface the real cause of outbound connector-call failures (the SDK only reports
+// "fetch failed"); see web/server/fetch-diagnostics.ts.
+installFetchDiagnostics();
 
 // Restore the routing plan + enabled processors from disk (if present) before serving.
 hydrateFromDisk();
