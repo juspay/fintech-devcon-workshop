@@ -89,6 +89,11 @@ authorize returns `CHARGED` and the refund returns `REFUND_SUCCESS`/`REFUND_PEND
 **What to look at:** `src/steps/step1-run-payment.ts` and `src/library/unified-payments.ts`.
 Notice the app code never mentions "Stripe" — it just calls `authorize(ACTIVE_PSP, order)`.
 
+Watch the console for the **`🔷 prism`** callouts: each one brackets a real
+`hyperswitch-prism` SDK call (method, PSP, elapsed ms), marking the exact moment the
+unified library hands off to the SDK. That's the only place prism is invoked — everything
+else in the workshop is processor-agnostic. (Set `PRISM_TRACE=off` to hide them.)
+
 ---
 
 ## Step 3 — Switch the PSP from PSP-1 to PSP-2 (the minimal change)

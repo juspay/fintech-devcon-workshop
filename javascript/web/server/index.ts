@@ -19,6 +19,7 @@ import { fileURLToPath } from 'url';
 import { createLogger, requestLogger } from './logger.js';
 import { hydrateFromDisk, watchPlanFile } from './control-state.js';
 import { installFetchDiagnostics } from './fetch-diagnostics.js';
+import { setPrismTraceSink } from '../../src/library/prism-trace.js';
 import storeRoutes from './routes/store.js';
 import routingRoutes from './routes/routing.js';
 import pspRoutes from './routes/psps.js';
@@ -28,6 +29,19 @@ const log = createLogger('server');
 // Surface the real cause of outbound connector-call failures (the SDK only reports
 // "fetch failed"); see web/server/fetch-diagnostics.ts.
 installFetchDiagnostics();
+
+// Render every hyperswitch-prism SDK call through the structured logger as scope
+// [prism], so the SDK boundary stands out in the same terminal as the rest of the
+// flow (see src/library/prism-trace.ts). Set PRISM_TRACE=off to silence it.
+const prismLog = createLogger('prism');
+setPrismTraceSink((e) => {
+  if (e.phase === 'invoke') {
+    prismLog.info(`→ ${e.client}.${e.method}()`, { psp: e.psp });
+  } else {
+    prismLog[e.ok ? 'info' : 'warn'](`← ${e.client}.${e.method}()`,
+      { psp: e.psp, ms: e.ms, ...(e.ok ? {} : { error: e.error }) });
+  }
+});
 
 // Restore the routing plan + enabled processors from disk (if present) before serving,
 // then watch web/routing-plan.json so hand edits to it reload into the running UI.

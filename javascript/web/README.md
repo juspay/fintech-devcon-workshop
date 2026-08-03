@@ -106,20 +106,32 @@ checkout with retry looks like:
 14:22:31.104 INFO  [http]            POST /api/store/checkout    reqId=1a2b3c
 14:22:31.105 INFO  [store]           checkout requested   reqId=1a2b3c mode=raw processor=auto amount=5998 currency=USD retry=true card=****1111
 14:22:31.106 INFO  [routing]         routed   reqId=1a2b3c psp=adyen reason="amount > 50.00 → adyen"
+14:22:31.106 INFO  [prism]        → PaymentClient.authorize()   psp=adyen
+14:22:31.402 WARN  [prism]        ← PaymentClient.authorize()   psp=adyen ms=296 error="ConnectorError: Not allowed"
 14:22:31.402 WARN  [orchestrator]    attempt declined   reqId=1a2b3c n=1 psp=adyen status=ERROR error="ConnectorError: Not allowed"
+14:22:31.403 INFO  [prism]        → PaymentClient.authorize()   psp=stripe
+14:22:31.640 INFO  [prism]        ← PaymentClient.authorize()   psp=stripe ms=237
 14:22:31.640 INFO  [orchestrator]    attempt approved   reqId=1a2b3c n=2 psp=stripe status=CHARGED
 14:22:31.641 INFO  [store]           checkout complete   reqId=1a2b3c succeeded=true winningPsp=stripe attempts=2
 14:22:31.642 INFO  [http]            POST /api/store/checkout → 200  reqId=1a2b3c ms=538
 ```
 
+The **`[prism]` lines are the SDK boundary** — the `→` / `←` pair brackets each real
+`hyperswitch-prism` call (which client, which method, which PSP, and how long it took),
+so during the workshop you can point at the terminal and say "*there* — that's where we
+hand off to prism." They come from `src/library/prism-trace.ts`, which wraps every SDK
+call in the unified library, so the CLI steps get the same callout (as a `🔷 prism`
+banner). Set `PRISM_TRACE=off` to hide them.
+
 The time/level/scope columns stay aligned across every line; the request/response
 boundary lines (`[http]`) keep their message flush-left while a request's activity has
 its message column indented, so it nests visually. Every line still carries a `reqId` so
 you can trace one request end-to-end even if requests interleave. Scopes: `http`,
-`store`, `routing`, `orchestrator`, `pci`, `control`, `server`. Configure via env:
+`store`, `routing`, `orchestrator`, `prism`, `pci`, `control`, `server`. Configure via env:
 
 - `LOG_LEVEL=debug|info|warn|error` (default `debug`)
 - `LOG_FORMAT=pretty|json` (default `pretty`; `json` for machine-readable logs, e.g. `LOG_FORMAT=json npm run web | jq`)
+- `PRISM_TRACE=off` hides the `[prism]` SDK-boundary callouts (default: on)
 
 Secrets are never logged — card numbers are masked to the last 4 digits, and credential
 saves log only the **key names**, never the values.
