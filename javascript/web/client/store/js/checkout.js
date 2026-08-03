@@ -36,8 +36,6 @@ const orderItemsEl = el('order-items');
 const orderTotalEl = el('order-total-amount');
 const modeToggle = el('mode-toggle');
 const processorSelect = el('processor-select');
-const retryGroup = el('retry-group');
-const retryToggle = el('retry-toggle');
 const modeNote = el('mode-note');
 const connectorInfo = el('payment-connector-info');
 const loadingEl = el('loading');
@@ -122,7 +120,6 @@ function setupConfigUI() {
   // (1) Switching the processor always re-renders the payment UI (tears down any
   // mounted connector SDK / stale session and refreshes the sample cards).
   processorSelect.addEventListener('change', onProcessorChange);
-  retryToggle.addEventListener('change', updateModeNote);
 
   rawSubmitBtn.addEventListener('click', payRaw);
   rawForm.addEventListener('submit', (e) => { e.preventDefault(); payRaw(); });
@@ -158,7 +155,6 @@ function renderProcessorOptions() {
 
 function applyModeUI() {
   renderProcessorOptions();
-  retryGroup.style.display = mode === 'raw' ? '' : 'none';
   resetPaymentUI();
   updateModeNote();
 }
@@ -189,8 +185,8 @@ function updateModeNote() {
     } else if (p && !p.tokenizable) {
       msg = `${p.displayName} has no processor-specific tokenization in this demo — use processor-agnostic mode for it.`;
     }
-  } else if (processor === 'auto' && retryToggle.checked) {
-    msg = 'Retry is enabled: the routed processor is tried first, then the others in registry order.';
+  } else if (processor === 'auto') {
+    msg = 'Automatic routing. Retry / fallback (try the next processor if one declines) is configured in the control plane.';
   }
   modeNote.textContent = msg;
   modeNote.classList.toggle('hidden', !msg);
@@ -301,9 +297,8 @@ async function payRaw() {
         minorAmount: checkoutData.totalAmount,
         currency: checkoutData.currency,
         processor,
-        // Retry/fallback is an orchestrator (Automatic) feature: try the routed
-        // processor first, then the others. It has no meaning when a processor is pinned.
-        retry: processor === 'auto' && retryToggle.checked,
+        // Retry/fallback is now a control-plane policy (see /control), applied
+        // server-side for Automatic routing — no per-request flag here.
         card,
       }),
     });
