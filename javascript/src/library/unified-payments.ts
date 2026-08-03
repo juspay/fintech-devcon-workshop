@@ -11,6 +11,7 @@
 
 import {
   PaymentClient,
+  MerchantAuthenticationClient,
   types,
   IntegrationError,
   ConnectorError,
@@ -135,6 +136,67 @@ export async function authorize(
   } catch (e) {
     return errorToResult(psp, 'authorize', e);
   }
+}
+
+// ── Tokenized (PCI-compliant) authorization ─────────────────────────────────
+// The twin of authorize(): instead of raw card data, it takes a `connectorToken`
+// produced client-side by the PSP's own SDK (Stripe Payment Element, Adyen web
+// components, GlobalPay hosted fields), so the card never touches our server.
+// Notice it still returns a UnifiedResult via the SAME normalizeAuthorize() — the
+// orchestrator can't tell whether a payment was raw or tokenized. This is what
+// lets the web store offer a "PCI vs non-PCI" toggle over one unified library.
+//
+// The client session/token bootstrap that produces `connectorToken` is
+// connector-specific and lives in the web layer (web/server/sessions.ts); this
+// function stays processor-agnostic.
+export interface TokenAuthorizeOptions {
+  // Some connectors (e.g. GlobalPay) need a server access token passed as state.
+  serverAccessToken?: string;
+}
+
+export async function tokenAuthorize(
+  psp: PspName,
+  order: Order,
+  connectorToken: string,
+  opts: TokenAuthorizeOptions = {},
+): Promise<UnifiedResult> {
+  try {
+    const client = new PaymentClient(getPsp(psp).buildConfig());
+    const request: types.PaymentServiceTokenAuthorizeRequest = {
+      merchantTransactionId: order.merchantTransactionId,
+      amount: { minorAmount: order.minorAmount, currency: toSdkCurrency(order.currency) },
+      connectorToken: { value: connectorToken },
+      captureMethod: types.CaptureMethod.AUTOMATIC,
+      returnUrl: 'https://example.com/return',
+      address: {},
+    };
+    if (opts.serverAccessToken) {
+      request.state = {
+        accessToken: { token: { value: opts.serverAccessToken }, tokenType: 'Bearer' },
+      };
+    }
+    const response = await client.tokenAuthorize(request);
+    return normalizeAuthorize(psp, response);
+  } catch (e) {
+    return errorToResult(psp, 'authorize', e);
+  }
+}
+
+// Create a client authentication token for a PSP. This is the session bootstrap
+// used by the browser-tokenized (PCI) flow: it returns the RAW SDK response and
+// leaves connector-specific extraction (Stripe clientSecret, Adyen sessionId,
+// etc.) to the caller, keeping this wrapper processor-agnostic.
+export async function createClientAuthToken(
+  psp: PspName,
+  order: Order,
+): Promise<types.MerchantAuthenticationServiceCreateClientAuthenticationTokenResponse> {
+  const client = new MerchantAuthenticationClient(getPsp(psp).buildConfig());
+  return client.createClientAuthenticationToken({
+    merchantClientSessionId: `${order.merchantTransactionId}_session`,
+    payment: {
+      amount: { minorAmount: order.minorAmount, currency: toSdkCurrency(order.currency) },
+    },
+  });
 }
 
 export async function capture(

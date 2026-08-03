@@ -1,10 +1,11 @@
 # hyperswitch-prism workshop — JavaScript / TypeScript
 
 A self-contained, runnable workshop that teaches the **hyperswitch-prism**
-unified payment library through eight short steps: run a payment with one PSP,
+unified payment library through nine short steps: run a payment with one PSP,
 switch processors with a one-line change, build a payment orchestrator
 (condition-based routing + retry), extend the library with a new flow/processor,
-and run a test suite.
+run a test suite, and drive it all from a browser — an e-commerce store and a
+routing control plane.
 
 > 📖 **Follow the guided walkthrough in [STEPS.md](./STEPS.md)** — it maps every
 > command below to a workshop step.
@@ -27,10 +28,17 @@ npm run run:payment         # Steps 1–4: run a payment (switch PSP in config/a
 npm run run:routing         # Step 6a: condition-based routing
 npm run run:retry           # Step 6b: payment retry / fallback
 npm run run:extend          # Step 7: add a new processor / new flow
+npm run web                 # Step 9: browser store + control plane (http://localhost:3000)
 ```
 
-Requirements: Git, Node.js 18+, and Linux x64 / macOS / WSL2 (the SDK ships a
-native x86_64 library — no Rust toolchain needed).
+Then open **http://localhost:3000/store** (storefront + checkout) and
+**http://localhost:3000/control** (routing control plane). See
+[`web/README.md`](./web/README.md) for the full walkthrough.
+
+Requirements: Git, **Node.js 18, 20, or 22 LTS (not 23+)**, and Linux x64 / macOS /
+WSL2 (the SDK ships a native x86_64 library — no Rust toolchain needed). Node 23+
+bundles undici 7, which breaks the SDK's `undici@6` HTTP dispatcher and makes every
+connector call fail with "Network Error: fetch failed" (`.nvmrc` pins Node 22).
 
 ## How it works
 
@@ -60,12 +68,16 @@ for Adyen is a one-line config change; adding a processor is one registry entry.
 | `stripe` | Stripe | PSP-1 | `STRIPE_API_KEY` |
 | `adyen` | Adyen | PSP-2 | `ADYEN_API_KEY`, `ADYEN_MERCHANT_ACCOUNT` |
 | `cybersource` | Cybersource | PSP-3 (added in Step 7) | `CYBERSOURCE_API_KEY`, `CYBERSOURCE_MERCHANT_ACCOUNT`, `CYBERSOURCE_API_SECRET` |
+| `globalpay` | GlobalPay | PSP-4 (added for the web experience) | `GLOBALPAY_APP_ID`, `GLOBALPAY_APP_KEY` |
 
 No credentials? Everything still runs — you'll see the request get built and sent
 and a connector error come back instead of a charge. The test suite needs no keys.
+The web store's processor-specific (PCI) checkout additionally needs browser keys —
+`STRIPE_PUBLISHABLE_KEY`, `ADYEN_CLIENT_KEY` — see [`web/README.md`](./web/README.md).
 
 ## Requirements
 
-- Node.js 18+ (LTS recommended)
+- **Node.js 18, 20, or 22 LTS** — not 23+ (newer Node bundles undici 7, which breaks
+  the SDK's `undici@6` HTTP dispatcher; `.nvmrc` pins Node 22)
 - Linux x64, macOS, or Windows via WSL2 (the SDK ships a native x86_64 library)
 - No build step — scripts run TypeScript directly via `tsx`

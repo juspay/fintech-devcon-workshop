@@ -2,3 +2,6 @@ node_modules/
 .env
 *.log
 dist/
+
+# Web control-plane persisted state (routing plan + enabled processors; no secrets)
+.control-state.json

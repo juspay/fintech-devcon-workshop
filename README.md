@@ -17,6 +17,7 @@ the library, and run a test suite — all from working, runnable code.
 | 6 | Build a payment orchestrator: **(a) condition-based routing, (b) payment retry** | `npm run run:routing`, `npm run run:retry` |
 | 7 | Extend the library: **new flow or new processor** | `npm run run:extend` |
 | 8 | Execute the **test suite** to ensure the change is robust | `npm test` |
+| 9 | See it in a browser: **e-commerce store + routing control plane** | `npm run web` |
 
 ## Start here
 
@@ -34,7 +35,14 @@ cd javascript
 npm install
 npm test                 # verify setup (no credentials needed)
 npm run run:payment      # run your first payment
+npm run web              # then open http://localhost:3000/store and /control
 ```
+
+The **web experience** (step 9) puts the same unified library and orchestrator behind
+an e-commerce storefront (`/store`) and a routing **control plane** (`/control`). The
+store checkout lets you pick a specific processor or let the system route by condition,
+and toggle a PCI (browser-tokenized) vs non-PCI (raw-card) flow — both finish through
+the unified library. See [`javascript/web/README.md`](./javascript/web/README.md).
 
 ## Languages (step 5)
 

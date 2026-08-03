@@ -2,3 +2,6 @@ node_modules/
 .env
 *.log
 dist/
+
+# Web control-plane persisted state
+.control-state.json
