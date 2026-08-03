@@ -12,6 +12,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { rateLimit } from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -36,6 +37,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger()); // structured per-request logging (see web/server/logger.ts)
+
+// Basic rate limiting on every route (generous — this is a local workshop app, but
+// it keeps the endpoints from being hammered and satisfies standard security checks).
+app.use(rateLimit({ windowMs: 60_000, max: 600, standardHeaders: true, legacyHeaders: false }));
 
 // API
 app.use('/api/store', storeRoutes);

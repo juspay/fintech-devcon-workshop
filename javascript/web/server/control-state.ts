@@ -29,10 +29,29 @@ interface PersistedState {
   enabled: PspName[];
 }
 
+// Restrict any string written to disk to a safe identifier charset. The plan is
+// already validated by setPlan(), but reconstructing the persisted object from
+// sanitized/whitelisted values keeps untrusted input from reaching the file.
+const clean = (s: unknown): string => String(s).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+
 // Write the current in-memory plan + enabled set to disk. Best-effort — a failed
 // write logs a warning but never breaks the request.
 export function persistSnapshot(): void {
-  const state: PersistedState = { version: 1, plan: getPlan(), enabled: listActive() };
+  const plan = getPlan();
+  const state = {
+    version: 1,
+    plan: {
+      rules: plan.rules.map((r) => ({
+        id: clean(r.id),
+        field: r.field === 'currency' ? 'currency' : 'amount',
+        operator: clean(r.operator),
+        value: r.field === 'amount' ? Number(r.value) || 0 : clean(r.value),
+        use: clean(r.use),
+      })),
+      fallback: plan.fallback === null ? null : clean(plan.fallback),
+    },
+    enabled: listActive().map(clean),
+  };
   try {
     fs.writeFileSync(FILE, JSON.stringify(state, null, 2));
     log.debug('control state saved', { rules: state.plan.rules.length, enabled: state.enabled.length });

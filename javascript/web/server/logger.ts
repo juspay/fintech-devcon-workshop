@@ -38,13 +38,20 @@ const LEVEL_COLOR: Record<Level, (s: string) => string> = {
 
 export type Fields = Record<string, unknown>;
 
+// Strip control characters (newlines, CR, etc.) so user-provided values can't
+// forge log lines (log injection).
+const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
+const oneLine = (s: string): string => s.replace(CONTROL_CHARS, ' ');
+
 function formatFields(fields: Fields): string {
   return Object.entries(fields)
     .map(([k, v]) => {
       let val: string;
       if (v === null || v === undefined) val = String(v);
-      else if (typeof v === 'string') val = /[\s"=]/.test(v) ? JSON.stringify(v) : v;
-      else if (typeof v === 'object') val = JSON.stringify(v);
+      else if (typeof v === 'string') {
+        const s = oneLine(v);
+        val = /[\s"=]/.test(s) ? JSON.stringify(s) : s;
+      } else if (typeof v === 'object') val = oneLine(JSON.stringify(v));
       else val = String(v);
       return `${k}=${val}`;
     })
@@ -66,7 +73,7 @@ function emit(level: Level, scope: string, msg: string, fields?: Fields): void {
   const indent = scope !== 'http' && fields?.reqId != null ? REQUEST_INDENT : '';
   const time = gray(new Date().toISOString().slice(11, 23)); // HH:MM:SS.mmm
   const lvl = LEVEL_COLOR[level](level.toUpperCase().padEnd(5));
-  const parts = [time, lvl, cyan(`[${scope}]`.padEnd(14)), indent + msg];
+  const parts = [time, lvl, cyan(`[${scope}]`.padEnd(14)), indent + oneLine(msg)];
   if (fields && Object.keys(fields).length) parts.push(dim(formatFields(fields)));
   console.log(parts.join(' '));
 }

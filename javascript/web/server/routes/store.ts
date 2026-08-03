@@ -139,45 +139,30 @@ router.post('/checkout', async (req, res) => {
     orch[r.ok ? 'info' : 'warn'](r.ok ? 'attempt approved' : 'attempt declined',
       { reqId, n, psp: r.psp, status: r.statusText, ok: r.ok, ...(r.error ? { error: r.error } : {}) });
 
-  try {
-    if (retryEnabled) {
-      // Try the primary first, then fall back across the other ENABLED PSPs.
-      const plan = buildPlan(primary, listActive().filter((p) => p !== primary));
-      orch.debug('retry plan', { reqId, plan: plan.join(' → ') });
-      const result = await withRetry({
-        plan,
-        attempt: (psp) => authorize(psp, order),
-        onAttempt: (_psp, i, outcome) => logAttempt(i + 1, outcome),
-      });
-      log[result.succeeded ? 'info' : 'warn']('checkout complete',
-        { reqId, succeeded: result.succeeded, winningPsp: result.winningPsp, attempts: result.attempts.length });
-      return res.json({
-        mode: 'raw',
-        automatic,
-        retryEnabled: true,
-        routedTo: primary,
-        reason,
-        succeeded: result.succeeded,
-        winningPsp: result.winningPsp,
-        merchantTransactionId: order.merchantTransactionId,
-        attempts: result.attempts.map((a) => toAttempt(a.outcome)),
-      });
-    }
+  // Always run through the same orchestrator path: the retry plan is just the
+  // primary alone when retry is off, or the primary followed by the other enabled
+  // PSPs when it's on. (No branch guarding authorization on a user-provided flag.)
+  const plan = retryEnabled ? buildPlan(primary, listActive().filter((p) => p !== primary)) : [primary];
+  orch.debug('attempt plan', { reqId, plan: plan.join(' → ') });
 
-    const result = await authorize(primary, order);
-    logAttempt(1, result);
-    log[result.ok ? 'info' : 'warn']('checkout complete',
-      { reqId, succeeded: result.ok, winningPsp: result.ok ? primary : null, attempts: 1 });
+  try {
+    const result = await withRetry({
+      plan,
+      attempt: (psp) => authorize(psp, order),
+      onAttempt: (_psp, i, outcome) => logAttempt(i + 1, outcome),
+    });
+    log[result.succeeded ? 'info' : 'warn']('checkout complete',
+      { reqId, succeeded: result.succeeded, winningPsp: result.winningPsp, attempts: result.attempts.length });
     return res.json({
       mode: 'raw',
       automatic,
-      retryEnabled: false,
+      retryEnabled,
       routedTo: primary,
       reason,
-      succeeded: result.ok,
-      winningPsp: result.ok ? primary : null,
+      succeeded: result.succeeded,
+      winningPsp: result.winningPsp,
       merchantTransactionId: order.merchantTransactionId,
-      attempts: [toAttempt(result)],
+      attempts: result.attempts.map((a) => toAttempt(a.outcome)),
     });
   } catch (e) {
     log.error('checkout error', { reqId, error: e instanceof Error ? e.message : String(e) });

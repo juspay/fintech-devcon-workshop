@@ -56,12 +56,12 @@ function renderProducts() {
     const price = currency === 'EUR' ? product.priceEUR : product.priceUSD;
     return `
       <div class="product-card">
-        <div class="product-image">${product.image}</div>
+        <div class="product-image">${escapeHtml(product.image)}</div>
         <div class="product-info">
-          <h3 class="product-name">${product.name}</h3>
-          <p class="product-description">${product.description}</p>
+          <h3 class="product-name">${escapeHtml(product.name)}</h3>
+          <p class="product-description">${escapeHtml(product.description)}</p>
           <p class="product-price">${formatPrice(price, currency)}</p>
-          <button class="add-to-cart-btn" onclick="addToCart('${product.id}')">Add to Cart</button>
+          <button class="add-to-cart-btn" onclick="addToCart('${escapeHtml(product.id)}')">Add to Cart</button>
         </div>
       </div>
     `;
@@ -133,15 +133,15 @@ function renderCart() {
     const price = currency === 'EUR' ? item.product.priceEUR : item.product.priceUSD;
     return `
       <div class="cart-item">
-        <div class="cart-item-image">${item.product.image}</div>
+        <div class="cart-item-image">${escapeHtml(item.product.image)}</div>
         <div class="cart-item-info">
-          <div class="cart-item-name">${item.product.name}</div>
+          <div class="cart-item-name">${escapeHtml(item.product.name)}</div>
           <div class="cart-item-price">${formatPrice(price, currency)}</div>
         </div>
         <div class="cart-item-quantity">
-          <button class="qty-btn" onclick="updateQuantity('${item.product.id}', -1)">-</button>
-          <span>${item.quantity}</span>
-          <button class="qty-btn" onclick="updateQuantity('${item.product.id}', 1)">+</button>
+          <button class="qty-btn" onclick="updateQuantity('${escapeHtml(item.product.id)}', -1)">-</button>
+          <span>${escapeHtml(item.quantity)}</span>
+          <button class="qty-btn" onclick="updateQuantity('${escapeHtml(item.product.id)}', 1)">+</button>
         </div>
       </div>`;
   }).join('');
@@ -194,6 +194,13 @@ function loadCartFromStorage() {
     currency = savedCurrency;
     currencySelector.value = currency;
   }
+}
+
+// Escape dynamic values before inserting into innerHTML (cart data comes from
+// localStorage, so treat it as untrusted).
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 window.addToCart = addToCart;

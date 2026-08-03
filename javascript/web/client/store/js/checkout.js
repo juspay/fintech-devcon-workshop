@@ -87,10 +87,10 @@ function renderOrderSummary() {
     const price = currency === 'EUR' ? item.product.priceEUR : item.product.priceUSD;
     return `
       <div class="order-item">
-        <div class="order-item-image">${item.product.image}</div>
+        <div class="order-item-image">${escapeHtml(item.product.image)}</div>
         <div class="order-item-info">
-          <div class="order-item-name">${item.product.name}</div>
-          <div class="order-item-qty">Qty: ${item.quantity}</div>
+          <div class="order-item-name">${escapeHtml(item.product.name)}</div>
+          <div class="order-item-qty">Qty: ${escapeHtml(item.quantity)}</div>
         </div>
         <div class="order-item-price">${formatPrice(price * item.quantity, currency)}</div>
       </div>`;
