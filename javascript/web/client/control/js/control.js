@@ -27,6 +27,7 @@ const CARD_OPERATORS = [{ value: 'startsWith', label: 'starts with' }];
 let psps = [];
 let rules = []; // { id, field, operator, value }  (value: dollars for amount, ISO for currency)
 let fallback = 'stripe';
+let retryEnabled = false;
 let ruleCounter = 0;
 
 const el = (id) => document.getElementById(id);
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderPspList();
   renderFallbackOptions();
   renderRules();
+  el('retry-toggle').checked = retryEnabled;
   wireEvents();
 });
 
@@ -51,6 +53,7 @@ async function loadPlan() {
   const res = await fetch('/api/routing');
   const plan = await res.json();
   fallback = plan.fallback;
+  retryEnabled = plan.retryEnabled === true;
   rules = plan.rules.map((r) => ({
     id: r.id || `rule-${ruleCounter++}`,
     field: r.field,
@@ -68,6 +71,27 @@ function wireEvents() {
   fallbackSelect.addEventListener('change', () => {
     fallback = fallbackSelect.value === 'none' ? null : fallbackSelect.value;
   });
+  el('retry-toggle').addEventListener('change', saveRetry);
+}
+
+// Retry/fallback is a global policy — save it immediately on toggle.
+async function saveRetry() {
+  const enabled = el('retry-toggle').checked;
+  try {
+    const res = await fetch('/api/routing/retry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update retry policy');
+    retryEnabled = data.retryEnabled === true;
+    el('retry-toggle').checked = retryEnabled;
+    setStatus(`Retry / fallback ${retryEnabled ? 'enabled' : 'disabled'}.`, true);
+  } catch (e) {
+    el('retry-toggle').checked = retryEnabled; // revert on failure
+    setStatus(e.message, false);
+  }
 }
 
 // ── Rendering ────────────────────────────────────────────────────────────────

@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 import { getPlan, setPlan, type DeclarativePlan } from './routing-store.js';
 import { listActive, setActive } from './active-psps.js';
+import { isRetryEnabled, setRetryEnabled } from './retry-policy.js';
 import { listPsps, type PspName } from '../../config/psp-registry.js';
 import { createLogger } from './logger.js';
 
@@ -27,6 +28,7 @@ interface PersistedState {
   version: number;
   plan: DeclarativePlan;
   enabled: PspName[];
+  retryEnabled?: boolean;
 }
 
 // Restrict any string written to disk to a safe identifier charset. The plan is
@@ -51,6 +53,7 @@ export function persistSnapshot(): void {
       fallback: plan.fallback === null ? null : clean(plan.fallback),
     },
     enabled: listActive().map(clean),
+    retryEnabled: isRetryEnabled(),
   };
   try {
     fs.writeFileSync(FILE, JSON.stringify(state, null, 2));
@@ -83,9 +86,12 @@ export function hydrateFromDisk(): void {
     if (err) log.warn('persisted routing plan is invalid — using default', { error: err });
   }
 
+  if (typeof parsed.retryEnabled === 'boolean') setRetryEnabled(parsed.retryEnabled);
+
   log.info('control state restored from disk', {
     file: path.relative(process.cwd(), FILE),
     rules: getPlan().rules.length,
     enabled: listActive().join(','),
+    retry: isRetryEnabled(),
   });
 }

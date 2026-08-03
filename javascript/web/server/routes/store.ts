@@ -23,6 +23,7 @@ import { withRetry, buildPlan } from '../../../src/orchestrator/retry.js';
 import { APPROVED_CARD, DECLINED_CARD, type Order, type TestCard } from '../../../src/library/cards.js';
 import { getPsp, listPsps, type PspName } from '../../../config/psp-registry.js';
 import { listActive, isActive } from '../active-psps.js';
+import { isRetryEnabled } from '../retry-policy.js';
 import { createClientSession, fetchGlobalPayServerToken, isTokenizable } from '../sessions.js';
 import { createLogger } from '../logger.js';
 
@@ -104,8 +105,8 @@ router.post('/checkout', async (req, res) => {
   if (!automatic && !isActive(processor)) {
     return res.status(400).json({ error: `${getPsp(processor).displayName} is not an enabled processor.` });
   }
-  // Retry/fallback is an orchestrator feature: only meaningful when routing (Automatic).
-  const retryEnabled = req.body?.retry === true && automatic;
+  // Retry/fallback is a control-plane policy and only meaningful when routing (Automatic).
+  const retryEnabled = automatic && isRetryEnabled();
   const reqId = req.reqId;
 
   const order: Order = { merchantTransactionId: newTxnId(), minorAmount, currency, card };

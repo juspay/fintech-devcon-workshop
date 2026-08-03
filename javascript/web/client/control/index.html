@@ -51,6 +51,13 @@
           <select id="fallback-select"></select>
         </div>
 
+        <div class="fallback-row">
+          <label class="checkbox-row" style="margin:0">
+            <input type="checkbox" id="retry-toggle">
+            <span><strong>Retry / fallback</strong> — if the routed processor declines, automatically try the next enabled processor (processor-agnostic checkout only). Saved immediately.</span>
+          </label>
+        </div>
+
         <div class="btn-row">
           <button class="btn btn-primary" id="save-btn">Save routing plan</button>
           <button class="btn btn-secondary" id="revert-btn">Revert</button>

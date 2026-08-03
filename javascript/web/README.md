@@ -38,12 +38,14 @@ in-memory state, seeded from `DEFAULT_ROUTING_PLAN`; it resets on restart).
   - Either way the **final call goes through the unified library** — this toggle is a
     live demo of orchestrating with vs without PCI compliance.
 - **Processor:** _Automatic_ (route by the `/control` rules) or a specific PSP.
-- **Retry / fallback** (raw + Automatic): try the routed PSP first, then the others in
-  registry order. Cross-PSP retry only applies to raw mode — a browser token is pinned
-  to the connector chosen at session time.
 
 The result panel prints the full **orchestration trace**: which PSP was routed to and
 why, and every attempt with its normalized status.
+
+**Retry / fallback** is a **control-plane policy** (toggle in `/control`): when on,
+Automatic routing tries the routed PSP first, then the others in registry order until one
+approves. It only applies to **processor-agnostic** checkout — a browser token is pinned
+to the connector chosen at session time, so the tokenized flow can't retry a different PSP.
 
 ## The control plane
 
@@ -58,6 +60,10 @@ so the server doesn't have it yet). Reorder rules (first match wins), set the fa
 returns a "no processor" error), and simulate a route. Save is validated server-side.
 With fallback **None**, no rules, and all processors removed, you can start the workshop
 from zero and layer everything in.
+
+A **Retry / fallback** toggle (saved immediately) sets the global retry policy: when on,
+Automatic routing falls back across the other enabled processors if the routed one
+declines (processor-agnostic checkout only — see above).
 
 **Layer in processors live.** The **Processors** panel manages which processors the
 orchestrator can use:

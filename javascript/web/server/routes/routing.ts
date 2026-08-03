@@ -1,11 +1,13 @@
 // Routing control-plane API (used by /control).
-//   GET  /api/routing            → current declarative plan
+//   GET  /api/routing            → current plan + retry policy
 //   PUT  /api/routing            → replace the plan (validated)
+//   POST /api/routing/retry      → toggle the retry/fallback policy (immediate save)
 //   POST /api/routing/simulate   → route a sample {minorAmount, currency} through it
 
 import { Router } from 'express';
 
 import { getPlan, setPlan, route, type DeclarativePlan } from '../routing-store.js';
+import { isRetryEnabled, setRetryEnabled } from '../retry-policy.js';
 import { persistSnapshot } from '../control-state.js';
 import { createLogger } from '../logger.js';
 
@@ -13,7 +15,15 @@ const router = Router();
 const log = createLogger('control');
 
 router.get('/', (_req, res) => {
-  res.json(getPlan());
+  res.json({ ...getPlan(), retryEnabled: isRetryEnabled() });
+});
+
+router.post('/retry', (req, res) => {
+  const enabled = req.body?.enabled === true;
+  setRetryEnabled(enabled);
+  persistSnapshot();
+  log.info('retry policy updated', { reqId: req.reqId, retryEnabled: enabled });
+  res.json({ retryEnabled: isRetryEnabled() });
 });
 
 router.put('/', (req, res) => {
