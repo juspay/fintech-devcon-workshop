@@ -78,12 +78,16 @@ orchestrator can use:
   rule or the fallback references **can't** be removed until you update the plan (the API
   returns 409), so the routing plan never dangles.
 
-**Persistence.** The **routing plan** and the **enabled-processor set** are saved to a
-gitignored `web/.control-state.json` on every change and restored at boot, so they
-survive restarts. **Credentials are never written there** — secrets stay in
-`process.env` / `.env` only and reset on restart (edit `.env` to persist keys). Delete
-`web/.control-state.json` to reset the plan + enabled set back to the code defaults.
-The store reflects changes on its next load.
+**Persistence — a tracked, hand-editable file.** The **routing plan** and the
+**enabled-processor set** are saved to `web/routing-plan.json` on every change and
+restored at boot. Unlike a hidden runtime dotfile, this is a **git-tracked file in your
+working tree**, so it doubles as a hands-on teaching artifact: after any `/control`
+action, run `git diff web/routing-plan.json` to see exactly what your click did, or
+`cat` it to read the declarative rule model. It's **two-way** — edit the file by hand
+and the server reloads it into the running UI (shown on the control page's next load).
+`git checkout web/routing-plan.json` resets the plan + enabled set to the workshop
+default. **Credentials are never written there** — secrets stay in `process.env` /
+`.env` only and reset on restart (edit `.env` to persist keys).
 
 ## Server logs (follow along in the terminal)
 
@@ -144,11 +148,12 @@ web/
 │   ├── active-psps.ts      the enabled-processor set (add/remove live)
 │   ├── credentials.ts      set a processor's keys at runtime (into process.env)
 │   ├── sessions.ts         connector-specific PCI session bootstrap (Stripe/Adyen/GlobalPay)
-│   ├── control-state.ts    persist plan + enabled set to .control-state.json (never secrets)
+│   ├── control-state.ts    read/write + watch routing-plan.json (never secrets)
 │   ├── logger.ts           structured, request-correlated logs
 │   ├── fetch-diagnostics.ts surfaces the Node-23 undici error before the SDK swallows it
 │   ├── products.ts         catalog
 │   └── routes/             store.ts, routing.ts, psps.ts
+├── routing-plan.json       tracked control-plane state (plan + enabled set); UI writes it, you can hand-edit it
 └── client/
     ├── shared/styles.css
     ├── store/              index.html, checkout.html, js/{app,checkout,stripe-sdk,globalpay-sdk,adyen-sdk}.js

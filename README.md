@@ -44,6 +44,11 @@ store checkout lets you pick a specific processor or let the system route by con
 and toggle a PCI (browser-tokenized) vs non-PCI (raw-card) flow — both finish through
 the unified library. See [`javascript/web/README.md`](./javascript/web/README.md).
 
+The browser **doesn't replace** the hands-on CLI steps — it complements them. Every
+change you make in `/control` is written to a git-tracked `javascript/web/routing-plan.json`,
+so after each click you can `git diff` it (or hand-edit it and watch the UI reload) — the
+by-hand and point-and-click tracks stay connected through one file you can touch.
+
 ## Languages (step 5)
 
 This repo implements the workshop end-to-end in **JavaScript/TypeScript** under

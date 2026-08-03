@@ -96,11 +96,13 @@ javascript/
     │   ├── active-psps.ts       which processors are enabled (add/remove live)
     │   ├── credentials.ts       set a processor's keys at runtime (into process.env)
     │   ├── sessions.ts          PCI session bootstrap for Stripe/Adyen/GlobalPay
-    │   ├── control-state.ts     persist plan + enabled set to .control-state.json (no secrets)
+    │   ├── control-state.ts     read/write + watch routing-plan.json (no secrets)
     │   ├── logger.ts            structured, request-correlated server logs
     │   ├── fetch-diagnostics.ts surfaces the Node-23 undici error before the SDK swallows it
     │   ├── products.ts          the store catalog
     │   └── routes/              store.ts · routing.ts · psps.ts  (the /api handlers)
+    ├── routing-plan.json       TRACKED control-plane state — every /control edit writes it;
+    │                           hand-edit it and the running UI reloads it (see below)
     └── client/
         ├── shared/styles.css
         ├── store/               index.html, checkout.html, js/{app,checkout, stripe/globalpay/adyen-sdk}.js
@@ -149,6 +151,32 @@ card/BIN rules) *and* cross-PSP retry happen server-side. In the **PCI** path ro
 resolves earlier — at **session** time — because the browser must load the chosen
 connector's SDK before tokenizing, and the resulting token is pinned to that connector
 (so no cross-PSP retry). Same unified library at the end of both.
+
+## Two ways to drive it — by hand, and in the browser
+
+The web experience does **not** replace the CLI. They're two tracks over the same core,
+and the workshop uses both:
+
+- **By hand (the CLI, steps 1–8)** — you *edit code and files yourself*: flip
+  `config/active-psp.ts` (step 3), add a registry entry (step 7), tweak
+  `DEFAULT_ROUTING_PLAN` and run the tests. This is where the "app code never names a
+  processor" lesson is felt in your fingers.
+- **Live (the browser, step 9)** — you *watch* routing happen in a real checkout and
+  manipulate it declaratively in `/control`.
+
+The two connect through one tracked file. **Every change you make in `/control` is
+written to [`web/routing-plan.json`](./web/routing-plan.json)** — a normal, git-tracked
+file in your working tree. So after any UI action you can inspect the result by hand:
+
+```bash
+git diff web/routing-plan.json      # see exactly what your click changed
+cat web/routing-plan.json           # the declarative rule model behind the UI
+```
+
+It's **two-way**: edit `web/routing-plan.json` by hand and the running server reloads it
+into the UI (the control page shows it on its next load). Point-and-click and
+hand-editing are the same surface, so participants always have a tangible artifact to
+touch — and `git checkout web/routing-plan.json` resets the plan to the workshop default.
 
 ## The PSPs in this workshop
 
