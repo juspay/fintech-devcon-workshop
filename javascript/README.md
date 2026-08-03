@@ -178,6 +178,11 @@ into the UI (the control page shows it on its next load). Point-and-click and
 hand-editing are the same surface, so participants always have a tangible artifact to
 touch — and `git checkout web/routing-plan.json` resets the plan to the workshop default.
 
+**The workshop ships empty** — no rules, no fallback, no enabled processors — so the
+first thing you do in `/control` is layer the orchestrator in one piece at a time (add a
+processor, add a rule, set a fallback). That empty file *is* the default `git checkout`
+returns you to.
+
 ## The PSPs in this workshop
 
 | Key | Processor | Role | Env vars |
