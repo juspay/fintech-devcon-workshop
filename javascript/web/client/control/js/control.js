@@ -22,6 +22,7 @@ const CURRENCY_OPERATORS = [
   { value: 'eq', label: 'is' },
   { value: 'neq', label: 'is not' },
 ];
+const CARD_OPERATORS = [{ value: 'startsWith', label: 'starts with' }];
 
 let psps = [];
 let rules = []; // { id, field, operator, value }  (value: dollars for amount, ISO for currency)
@@ -77,7 +78,7 @@ function pspOptions(selected) {
 }
 
 function operatorOptions(field, selected) {
-  const ops = field === 'amount' ? AMOUNT_OPERATORS : CURRENCY_OPERATORS;
+  const ops = field === 'amount' ? AMOUNT_OPERATORS : field === 'card' ? CARD_OPERATORS : CURRENCY_OPERATORS;
   return ops.map((o) => `<option value="${o.value}"${o.value === selected ? ' selected' : ''}>${o.label}</option>`).join('');
 }
 
@@ -222,17 +223,22 @@ function renderRules() {
     return;
   }
   rulesBody.innerHTML = rules.map((r, i) => {
-    const isAmount = r.field === 'amount';
-    const valueInput = isAmount
-      ? `<input type="number" step="0.01" min="0" data-k="value" value="${escapeAttr(r.value)}" placeholder="50.00">`
-      : `<input type="text" data-k="value" value="${escapeAttr(r.value)}" placeholder="EUR" style="text-transform:uppercase">`;
+    let valueInput;
+    if (r.field === 'amount') {
+      valueInput = `<input type="number" step="0.01" min="0" data-k="value" value="${escapeAttr(r.value)}" placeholder="50.00">`;
+    } else if (r.field === 'card') {
+      valueInput = `<input type="text" inputmode="numeric" data-k="value" value="${escapeAttr(r.value)}" placeholder="BIN e.g. 4111" title="Card number prefix (digits)">`;
+    } else {
+      valueInput = `<input type="text" data-k="value" value="${escapeAttr(r.value)}" placeholder="EUR" style="text-transform:uppercase">`;
+    }
     return `
       <tr data-id="${r.id}">
         <td class="rule-order">${i + 1}</td>
         <td>
           <select data-k="field">
-            <option value="amount"${isAmount ? ' selected' : ''}>Amount</option>
-            <option value="currency"${!isAmount ? ' selected' : ''}>Currency</option>
+            <option value="amount"${r.field === 'amount' ? ' selected' : ''}>Amount</option>
+            <option value="currency"${r.field === 'currency' ? ' selected' : ''}>Currency</option>
+            <option value="card"${r.field === 'card' ? ' selected' : ''}>Card number</option>
           </select>
         </td>
         <td><select data-k="operator">${operatorOptions(r.field, r.operator)}</select></td>
@@ -271,8 +277,9 @@ function onRowChange(id, key, value) {
   if (key === 'field') {
     rule.field = value;
     // Reset operator to a valid one for the new field and re-render that row's controls.
-    rule.operator = value === 'amount' ? 'gt' : 'eq';
+    rule.operator = value === 'amount' ? 'gt' : value === 'card' ? 'startsWith' : 'eq';
     if (value === 'currency') rule.value = (rule.value || '').toString().toUpperCase();
+    if (value === 'card') rule.value = (rule.value || '').toString().replace(/\D/g, '');
     renderRules();
     return;
   }
@@ -301,13 +308,11 @@ function readRowsFromDom() {
     const get = (k) => row.querySelector(`[data-k="${k}"]`)?.value;
     const field = get('field');
     const rawValue = get('value');
-    out.push({
-      id: row.dataset.id,
-      field,
-      operator: get('operator'),
-      value: field === 'amount' ? Math.round(parseFloat(rawValue || '0') * 100) : String(rawValue || '').toUpperCase(),
-      use: get('use'),
-    });
+    let value;
+    if (field === 'amount') value = Math.round(parseFloat(rawValue || '0') * 100);
+    else if (field === 'card') value = String(rawValue || '').replace(/\D/g, ''); // digits only
+    else value = String(rawValue || '').toUpperCase();
+    out.push({ id: row.dataset.id, field, operator: get('operator'), value, use: get('use') });
   });
   return out;
 }

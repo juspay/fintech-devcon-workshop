@@ -118,7 +118,8 @@ router.post('/checkout', async (req, res) => {
   let primary: PspName;
   let reason: string;
   if (automatic) {
-    const decision = route({ minorAmount, currency });
+    // Raw mode has the card, so card/BIN rules can be evaluated here.
+    const decision = route({ minorAmount, currency, cardNumber: card.cardNumber });
     if (!decision.psp) {
       routeLog.warn('no route', { reqId, reason: decision.reason });
       return res.status(409).json({
