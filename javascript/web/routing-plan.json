@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "plan": {
+    "rules": [
+      {
+        "id": "rule-high-value",
+        "field": "amount",
+        "operator": "gt",
+        "value": 5000,
+        "use": "adyen"
+      },
+      {
+        "id": "rule-eur",
+        "field": "currency",
+        "operator": "eq",
+        "value": "EUR",
+        "use": "cybersource"
+      }
+    ],
+    "fallback": "stripe"
+  },
+  "enabled": [
+    "stripe",
+    "adyen",
+    "cybersource",
+    "globalpay"
+  ],
+  "retryEnabled": false
+}

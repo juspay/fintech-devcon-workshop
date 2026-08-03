@@ -17,7 +17,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { createLogger, requestLogger } from './logger.js';
-import { hydrateFromDisk } from './control-state.js';
+import { hydrateFromDisk, watchPlanFile } from './control-state.js';
 import { installFetchDiagnostics } from './fetch-diagnostics.js';
 import storeRoutes from './routes/store.js';
 import routingRoutes from './routes/routing.js';
@@ -29,8 +29,10 @@ const log = createLogger('server');
 // "fetch failed"); see web/server/fetch-diagnostics.ts.
 installFetchDiagnostics();
 
-// Restore the routing plan + enabled processors from disk (if present) before serving.
+// Restore the routing plan + enabled processors from disk (if present) before serving,
+// then watch web/routing-plan.json so hand edits to it reload into the running UI.
 hydrateFromDisk();
+watchPlanFile();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

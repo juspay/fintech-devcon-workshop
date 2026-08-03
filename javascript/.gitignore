@@ -3,5 +3,6 @@ node_modules/
 *.log
 dist/
 
-# Web control-plane persisted state (routing plan + enabled processors; no secrets)
+# The control plane's state now lives in a TRACKED file (web/routing-plan.json) so
+# attendees can see/diff/hand-edit it. Still ignore the pre-web-9 hidden dotfile.
 .control-state.json

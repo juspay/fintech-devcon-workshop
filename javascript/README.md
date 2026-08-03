@@ -61,6 +61,123 @@ connector call fail with "Network Error: fetch failed" (`.nvmrc` pins Node 22).
 The whole point: **application code never names a processor.** Swapping Stripe
 for Adyen is a one-line config change; adding a processor is one registry entry.
 
+## Codebase map
+
+Every file, and the workshop step it belongs to. The CLI steps (1–8) live in
+`config/`, `src/`, and `test/`; the browser experience (step 9) lives in `web/`.
+
+```
+javascript/
+├── config/
+│   ├── active-psp.ts          Step 3: the one-line PSP switch (which processor is "active")
+│   └── psp-registry.ts        Every PSP + its credentials, read lazily from process.env
+│
+├── src/
+│   ├── library/               ── the unified library ──
+│   │   ├── unified-payments.ts   authorize · capture · void · refund + tokenAuthorize (PCI)
+│   │   ├── cards.ts              sample test cards (approved/declined) + the Order type
+│   │   └── format.ts            console pretty-printing helpers
+│   ├── orchestrator/          ── pure, processor-free ──
+│   │   ├── routing.ts           selectPsp(): condition-based routing (Step 6a)
+│   │   └── retry.ts             withRetry(): fall back across PSPs on decline (Step 6b)
+│   └── steps/                 ── the demos you run (npm run run:*) ──
+│       ├── step1-run-payment.ts run a payment through one PSP        (Steps 1–4)
+│       ├── step2-routing.ts     routing in action                   (Step 6a)
+│       ├── step3-retry.ts       retry / fallback in action          (Step 6b)
+│       └── step4-extend.ts      add a new processor / flow          (Step 7)
+│
+├── test/                      Step 8: routing / retry / unified-payments tests (no keys)
+│
+└── web/                       Step 9: browser store + control plane (one Express process)
+    ├── server/
+    │   ├── index.ts             Express app: serves /store, /control, mounts /api/*
+    │   ├── routing-store.ts     declarative rule model → compiles into selectPsp()
+    │   ├── retry-policy.ts      global retry/fallback on-off (a control-plane policy)
+    │   ├── active-psps.ts       which processors are enabled (add/remove live)
+    │   ├── credentials.ts       set a processor's keys at runtime (into process.env)
+    │   ├── sessions.ts          PCI session bootstrap for Stripe/Adyen/GlobalPay
+    │   ├── control-state.ts     read/write + watch routing-plan.json (no secrets)
+    │   ├── logger.ts            structured, request-correlated server logs
+    │   ├── fetch-diagnostics.ts surfaces the Node-23 undici error before the SDK swallows it
+    │   ├── products.ts          the store catalog
+    │   └── routes/              store.ts · routing.ts · psps.ts  (the /api handlers)
+    ├── routing-plan.json       TRACKED control-plane state — every /control edit writes it;
+    │                           hand-edit it and the running UI reloads it (see below)
+    └── client/
+        ├── shared/styles.css
+        ├── store/               index.html, checkout.html, js/{app,checkout, stripe/globalpay/adyen-sdk}.js
+        └── control/             index.html, js/control.js  (rules editor + processor panel)
+```
+
+The connector SDK handlers (`store/js/{stripe,globalpay,adyen}-sdk.js`) are reused
+verbatim from the `juspay/hyperswitch-prism` `demo/e-commerce` store. See
+[`web/README.md`](./web/README.md) for the request flows through these files.
+
+## Request flow
+
+How a checkout travels through the code. Both the **processor-agnostic** (raw) and
+**processor-specific** (PCI/tokenized) paths converge on the same unified library, and
+the `/control` plan is what the router reads on every payment.
+
+```mermaid
+flowchart TD
+    control["/control<br/>rules editor"] -->|"PUT /api/routing"| plan[("routing-store.ts<br/>the editable plan")]
+
+    checkout["/store checkout"]
+    checkout -->|"processor-agnostic<br/>POST /api/store/checkout"| raw["routes/store.ts<br/>· raw checkout"]
+    checkout -->|"processor-specific<br/>GET /api/store/session"| sess["routes/store.ts<br/>· PCI bootstrap"]
+
+    raw -->|"Automatic? route()"| plan
+    plan --> selectPsp["orchestrator/routing.ts<br/>selectPsp()"]
+    selectPsp -.->|chosen PSP| raw
+    raw -->|"retry on?"| retry["retry-policy.ts"]
+    raw --> withRetry["orchestrator/retry.ts<br/>withRetry()"]
+    withRetry --> authorize["library/unified-payments.ts<br/>authorize()"]
+
+    sess -->|"Automatic? route()"| plan
+    sess --> sessions["sessions.ts<br/>createClientSession()"]
+    sessions -->|"clientToken"| browserSdk["connector SDK in browser<br/>stripe/adyen/globalpay-sdk.js"]
+    browserSdk -->|"card token<br/>POST /api/store/token-authorize"| finalize["routes/store.ts<br/>· PCI finalize"]
+    finalize --> tokenAuth["library/unified-payments.ts<br/>tokenAuthorize()"]
+
+    authorize --> sdk["hyperswitch-prism SDK"]
+    tokenAuth --> sdk
+    sessions --> sdk
+    sdk --> connector["payment processor<br/>Stripe · Adyen · Cybersource · GlobalPay"]
+```
+
+The teaching contrast: in the **raw** path the server holds the card, so routing (incl.
+card/BIN rules) *and* cross-PSP retry happen server-side. In the **PCI** path routing
+resolves earlier — at **session** time — because the browser must load the chosen
+connector's SDK before tokenizing, and the resulting token is pinned to that connector
+(so no cross-PSP retry). Same unified library at the end of both.
+
+## Two ways to drive it — by hand, and in the browser
+
+The web experience does **not** replace the CLI. They're two tracks over the same core,
+and the workshop uses both:
+
+- **By hand (the CLI, steps 1–8)** — you *edit code and files yourself*: flip
+  `config/active-psp.ts` (step 3), add a registry entry (step 7), tweak
+  `DEFAULT_ROUTING_PLAN` and run the tests. This is where the "app code never names a
+  processor" lesson is felt in your fingers.
+- **Live (the browser, step 9)** — you *watch* routing happen in a real checkout and
+  manipulate it declaratively in `/control`.
+
+The two connect through one tracked file. **Every change you make in `/control` is
+written to [`web/routing-plan.json`](./web/routing-plan.json)** — a normal, git-tracked
+file in your working tree. So after any UI action you can inspect the result by hand:
+
+```bash
+git diff web/routing-plan.json      # see exactly what your click changed
+cat web/routing-plan.json           # the declarative rule model behind the UI
+```
+
+It's **two-way**: edit `web/routing-plan.json` by hand and the running server reloads it
+into the UI (the control page shows it on its next load). Point-and-click and
+hand-editing are the same surface, so participants always have a tangible artifact to
+touch — and `git checkout web/routing-plan.json` resets the plan to the workshop default.
+
 ## The PSPs in this workshop
 
 | Key | Processor | Role | Env vars |

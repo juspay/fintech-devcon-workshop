@@ -3,5 +3,6 @@ node_modules/
 *.log
 dist/
 
-# Web control-plane persisted state
+# Control-plane state is a TRACKED file now (javascript/web/routing-plan.json);
+# only ignore the pre-web-9 hidden dotfile.
 .control-state.json
