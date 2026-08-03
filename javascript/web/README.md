@@ -138,16 +138,25 @@ and fill in the ones you want:
 ```
 web/
 ├── server/
-│   ├── index.ts          Express app: /store, /control, /api
-│   ├── routing-store.ts  declarative rule model + in-memory plan → compiles into selectPsp
-│   ├── sessions.ts       connector-specific PCI session bootstrap (Stripe/Adyen/GlobalPay)
-│   ├── products.ts       catalog
-│   └── routes/           store.ts, routing.ts, psps.ts
+│   ├── index.ts            Express app: /store, /control, /api
+│   ├── routing-store.ts    declarative rule model + in-memory plan → compiles into selectPsp
+│   ├── retry-policy.ts     global retry/fallback on-off (control-plane policy)
+│   ├── active-psps.ts      the enabled-processor set (add/remove live)
+│   ├── credentials.ts      set a processor's keys at runtime (into process.env)
+│   ├── sessions.ts         connector-specific PCI session bootstrap (Stripe/Adyen/GlobalPay)
+│   ├── control-state.ts    persist plan + enabled set to .control-state.json (never secrets)
+│   ├── logger.ts           structured, request-correlated logs
+│   ├── fetch-diagnostics.ts surfaces the Node-23 undici error before the SDK swallows it
+│   ├── products.ts         catalog
+│   └── routes/             store.ts, routing.ts, psps.ts
 └── client/
     ├── shared/styles.css
-    ├── store/            index.html, checkout.html, js/{app,checkout,stripe-sdk,globalpay-sdk,adyen-sdk}.js
-    └── control/          index.html, js/control.js
+    ├── store/              index.html, checkout.html, js/{app,checkout,stripe-sdk,globalpay-sdk,adyen-sdk}.js
+    └── control/            index.html, js/control.js
 ```
+
+For the whole-repo picture (CLI steps + web) see the **Codebase map** in
+[`../README.md`](../README.md#codebase-map).
 
 The connector SDK handlers under `client/store/js/{stripe,globalpay,adyen}-sdk.js` are
 reused from the `juspay/hyperswitch-prism` `demo/e-commerce` store.
