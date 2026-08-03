@@ -24,7 +24,15 @@ npm run web
 
 Both pages are served by one Express process (`web/server/index.ts`), so the routing
 plan you edit in `/control` is immediately used by the store's Automatic mode (shared
-in-memory state, seeded from `DEFAULT_ROUTING_PLAN`; it resets on restart).
+in-memory state, restored at boot from `web/routing-plan.json`).
+
+> **The workshop ships empty — a clean slate.** Out of the box there are **no routing
+> rules, no fallback, and no enabled processors**. That's deliberate: you build the
+> orchestrator up live. Your first moves in `/control` are to **add a processor** (🔑
+> its keys, or Add it to the active set) and then **add a rule or set the fallback**.
+> Until a processor is enabled and something routes, a checkout returns a "no
+> processor" error — that's the empty state, not a bug. `git checkout web/routing-plan.json`
+> returns you to this clean slate at any time.
 
 ## The store checkout — request-level configuration
 

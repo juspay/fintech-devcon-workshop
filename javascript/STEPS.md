@@ -252,6 +252,17 @@ Then open two URLs:
   served from memory), pick the fallback, and simulate a route. Saving is immediately
   honored by the store's Automatic mode.
 
+> **Start empty and build up.** The workshop ships with **no rules, no fallback, and no
+> enabled processors** — a clean slate. So the orchestrator is assembled live, in order:
+>
+> 1. **Add a processor** in `/control` → Processors (🔑 add its keys, or Add it to the
+>    active set). Repeat to bring processors online one at a time.
+> 2. **Set a fallback** (or add a rule) so payments have somewhere to route.
+> 3. Check out in `/store` and watch the trace.
+>
+> Before a processor is enabled and something routes, a checkout returns a "no processor"
+> error — that's the empty state, by design.
+
 > **This step is still hands-on.** The CLI steps (1–8) are the *edit-code-by-hand* track;
 > step 9 is the *see-it-live* track — they don't replace each other. And they meet in one
 > file: **every `/control` change writes `web/routing-plan.json`**, a git-tracked file. So

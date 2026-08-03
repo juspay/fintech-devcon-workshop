@@ -10,7 +10,11 @@
 // just generate its `when` closures from data instead of hand-writing them.
 //
 // State is in-memory and shared across the store and control routes (same Express
-// process), seeded from the workshop's DEFAULT_ROUTING_PLAN. It resets on restart.
+// process). The workshop starts from a CLEAN SLATE — no rules and no fallback — so
+// participants build the plan up one rule at a time in /control. Boot restores
+// whatever routing-plan.json holds (see control-state.ts). It resets on restart.
+// (The CLI's DEFAULT_ROUTING_PLAN in orchestrator/routing.ts is separate and still
+// carries the step-6a demo rules.)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
@@ -129,13 +133,10 @@ export function compilePlan(plan: { rules: DeclarativeRule[]; fallback: PspName 
   return { rules: compileRules(plan.rules), fallback: plan.fallback };
 }
 
-// ── In-memory plan state (seeded to match DEFAULT_ROUTING_PLAN) ──────────────
+// ── In-memory plan state — starts empty (clean slate; build it up in /control) ──
 let currentPlan: DeclarativePlan = {
-  rules: [
-    { id: 'rule-high-value', field: 'amount', operator: 'gt', value: 5000, use: 'adyen' },
-    { id: 'rule-eur', field: 'currency', operator: 'eq', value: 'EUR', use: 'cybersource' },
-  ],
-  fallback: 'stripe',
+  rules: [],
+  fallback: null,
 };
 
 export function getPlan(): DeclarativePlan {
