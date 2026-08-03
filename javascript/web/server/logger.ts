@@ -51,17 +51,23 @@ function formatFields(fields: Fields): string {
     .join(' ');
 }
 
+// Request-scoped lines (any line carrying a reqId, except the `http` boundary
+// lines) are indented so a request's activity nests visually under its
+// request/response lines — easy to read when there are several lines in between.
+const REQUEST_INDENT = '   ';
+
 function emit(level: Level, scope: string, msg: string, fields?: Fields): void {
   if (RANK[level] < threshold) return;
   if (asJson) {
     console.log(JSON.stringify({ t: new Date().toISOString(), level, scope, msg, ...(fields ?? {}) }));
     return;
   }
+  const indent = scope !== 'http' && fields?.reqId != null ? REQUEST_INDENT : '';
   const time = gray(new Date().toISOString().slice(11, 23)); // HH:MM:SS.mmm
   const lvl = LEVEL_COLOR[level](level.toUpperCase().padEnd(5));
   const parts = [time, lvl, cyan(`[${scope}]`.padEnd(14)), msg];
   if (fields && Object.keys(fields).length) parts.push(dim(formatFields(fields)));
-  console.log(parts.join(' '));
+  console.log(indent + parts.join(' '));
 }
 
 export interface Logger {

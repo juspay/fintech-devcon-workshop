@@ -79,15 +79,17 @@ checkout with retry looks like:
 
 ```
 14:22:31.104 INFO  [http]         POST /api/store/checkout    reqId=1a2b3c
-14:22:31.105 INFO  [store]        checkout requested          reqId=1a2b3c mode=raw processor=auto amount=5998 currency=USD retry=true card=****1111
-14:22:31.106 INFO  [routing]      routed                      reqId=1a2b3c psp=adyen reason="amount > 50.00 → adyen"
-14:22:31.402 WARN  [orchestrator] attempt declined            reqId=1a2b3c n=1 psp=adyen status=ERROR error="ConnectorError: Not allowed"
-14:22:31.640 INFO  [orchestrator] attempt approved            reqId=1a2b3c n=2 psp=stripe status=CHARGED
-14:22:31.641 INFO  [store]        checkout complete           reqId=1a2b3c succeeded=true winningPsp=stripe attempts=2
+   14:22:31.105 INFO  [store]        checkout requested          reqId=1a2b3c mode=raw processor=auto amount=5998 currency=USD retry=true card=****1111
+   14:22:31.106 INFO  [routing]      routed                      reqId=1a2b3c psp=adyen reason="amount > 50.00 → adyen"
+   14:22:31.402 WARN  [orchestrator] attempt declined            reqId=1a2b3c n=1 psp=adyen status=ERROR error="ConnectorError: Not allowed"
+   14:22:31.640 INFO  [orchestrator] attempt approved            reqId=1a2b3c n=2 psp=stripe status=CHARGED
+   14:22:31.641 INFO  [store]        checkout complete           reqId=1a2b3c succeeded=true winningPsp=stripe attempts=2
 14:22:31.642 INFO  [http]         POST /api/store/checkout → 200  reqId=1a2b3c ms=538
 ```
 
-Every line carries a `reqId` so you can trace one request end-to-end. Scopes: `http`,
+The request/response boundary lines (`[http]`) sit flush-left and a request's activity
+is indented beneath them. Every line still carries a `reqId` so you can trace one request
+end-to-end even if requests interleave. Scopes: `http`,
 `store`, `routing`, `orchestrator`, `pci`, `control`, `server`. Configure via env:
 
 - `LOG_LEVEL=debug|info|warn|error` (default `debug`)
