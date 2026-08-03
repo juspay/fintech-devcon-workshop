@@ -18,7 +18,6 @@ import {
   type RoutingPlan,
   type RoutingRule,
   type RoutingContext,
-  type RoutingDecision,
 } from '../../src/orchestrator/routing.js';
 import { type PspName } from '../../config/psp-registry.js';
 import { listActive } from './active-psps.js';
@@ -39,7 +38,15 @@ export interface DeclarativeRule {
 
 export interface DeclarativePlan {
   rules: DeclarativeRule[];
-  fallback: PspName;
+  // `null` = no fallback: an unmatched payment has no route (a clean slate). The
+  // wire value 'none' is also accepted from the UI and normalized to null.
+  fallback: PspName | null;
+}
+
+// A routing outcome that may have NO processor (empty plan + no fallback).
+export interface RouteResult {
+  psp: PspName | null;
+  reason: string;
 }
 
 const OP_SYMBOL: Record<ConditionOperator, string> = {
@@ -93,15 +100,18 @@ function ruleReason(rule: DeclarativeRule): string {
   return `${rule.field} ${OP_SYMBOL[rule.operator]} ${val} → ${rule.use}`;
 }
 
-// Compile the declarative plan into the workshop's RoutingPlan so selectPsp() can
-// run it unchanged.
-export function compilePlan(plan: DeclarativePlan): RoutingPlan {
-  const rules: RoutingRule[] = plan.rules.map((r) => ({
+function compileRules(rules: DeclarativeRule[]): RoutingRule[] {
+  return rules.map((r) => ({
     reason: ruleReason(r),
     use: r.use,
     when: (ctx: RoutingContext) => evalRule(r, ctx),
   }));
-  return { rules, fallback: plan.fallback };
+}
+
+// Compile a plan that HAS a fallback into the workshop's RoutingPlan so selectPsp()
+// can run it unchanged.
+export function compilePlan(plan: { rules: DeclarativeRule[]; fallback: PspName }): RoutingPlan {
+  return { rules: compileRules(plan.rules), fallback: plan.fallback };
 }
 
 // ── In-memory plan state (seeded to match DEFAULT_ROUTING_PLAN) ──────────────
@@ -125,7 +135,12 @@ export function setPlan(plan: DeclarativePlan): string | null {
   // Routing may only target ENABLED processors (see active-psps).
   const known = new Set(listActive());
   if (!plan || !Array.isArray(plan.rules)) return 'plan.rules must be an array';
-  if (!known.has(plan.fallback)) return `fallback PSP "${plan.fallback}" is not an enabled processor`;
+  // A missing/'none'/null fallback means "no fallback" (clean slate).
+  const rawFallback = plan.fallback as PspName | 'none' | null | undefined;
+  const fallback: PspName | null = rawFallback == null || rawFallback === 'none' ? null : rawFallback;
+  if (fallback !== null && !known.has(fallback)) {
+    return `fallback PSP "${fallback}" is not an enabled processor`;
+  }
 
   for (const r of plan.rules) {
     if (r.field !== 'amount' && r.field !== 'currency') {
@@ -145,12 +160,21 @@ export function setPlan(plan: DeclarativePlan): string | null {
 
   currentPlan = {
     rules: plan.rules.map((r) => ({ ...r })),
-    fallback: plan.fallback,
+    fallback,
   };
   return null;
 }
 
 // Route a payment context through the CURRENT plan (used by the store + simulate).
-export function route(ctx: RoutingContext): RoutingDecision {
-  return selectPsp(compilePlan(currentPlan), ctx);
+// Reuses selectPsp() when a fallback is set; a null fallback ("none") means an
+// unmatched payment has no route.
+export function route(ctx: RoutingContext): RouteResult {
+  const plan = currentPlan;
+  if (plan.fallback !== null) {
+    return selectPsp(compilePlan({ rules: plan.rules, fallback: plan.fallback }), ctx);
+  }
+  for (const rule of compileRules(plan.rules)) {
+    if (rule.when(ctx)) return { psp: rule.use, reason: rule.reason };
+  }
+  return { psp: null, reason: 'no rule matched and no fallback set' };
 }

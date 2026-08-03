@@ -119,6 +119,13 @@ router.post('/checkout', async (req, res) => {
   let reason: string;
   if (automatic) {
     const decision = route({ minorAmount, currency });
+    if (!decision.psp) {
+      routeLog.warn('no route', { reqId, reason: decision.reason });
+      return res.status(409).json({
+        error: 'No processor matched this payment and no fallback is set. Add a routing rule or set a ' +
+          'fallback in the control plane, or pick a specific processor.',
+      });
+    }
     primary = decision.psp;
     reason = decision.reason;
     routeLog.info('routed', { reqId, psp: primary, reason });
@@ -204,6 +211,13 @@ router.get('/session', async (req, res) => {
   let reason: string;
   if (automatic) {
     const decision = route({ minorAmount, currency });
+    if (!decision.psp) {
+      routeLog.warn('no route', { reqId, reason: decision.reason });
+      return res.status(409).json({
+        error: 'No processor matched this payment and no fallback is set. Add a routing rule or set a ' +
+          'fallback in the control plane.',
+      });
+    }
     psp = decision.psp;
     reason = decision.reason;
     routeLog.info('routed', { reqId, psp, reason });

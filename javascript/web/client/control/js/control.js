@@ -64,7 +64,9 @@ function wireEvents() {
   el('save-btn').addEventListener('click', savePlan);
   el('revert-btn').addEventListener('click', revert);
   el('sim-btn').addEventListener('click', simulate);
-  fallbackSelect.addEventListener('change', () => { fallback = fallbackSelect.value; });
+  fallbackSelect.addEventListener('change', () => {
+    fallback = fallbackSelect.value === 'none' ? null : fallbackSelect.value;
+  });
 }
 
 // ── Rendering ────────────────────────────────────────────────────────────────
@@ -80,7 +82,12 @@ function operatorOptions(field, selected) {
 }
 
 function renderFallbackOptions() {
-  fallbackSelect.innerHTML = pspOptions(fallback);
+  // "None" enables a clean slate — an unmatched payment simply has no route.
+  const opts = [`<option value="none"${fallback == null ? ' selected' : ''}>None (no fallback)</option>`];
+  for (const p of psps.filter((x) => x.enabled)) {
+    opts.push(`<option value="${p.name}"${p.name === fallback ? ' selected' : ''}>${p.displayName}</option>`);
+  }
+  fallbackSelect.innerHTML = opts.join('');
 }
 
 function pspItemHtml(p) {
@@ -208,7 +215,10 @@ function setCredStatus(name, msg, ok) {
 
 function renderRules() {
   if (rules.length === 0) {
-    rulesBody.innerHTML = `<tr><td colspan="7" style="color:#94a3b8;padding:14px 8px">No rules — every payment goes to the fallback.</td></tr>`;
+    const emptyMsg = fallback == null
+      ? 'No rules and no fallback — Automatic routing has nowhere to go. Add a rule or set a fallback.'
+      : 'No rules — every payment goes to the fallback.';
+    rulesBody.innerHTML = `<tr><td colspan="7" style="color:#94a3b8;padding:14px 8px">${emptyMsg}</td></tr>`;
     return;
   }
   rulesBody.innerHTML = rules.map((r, i) => {
@@ -303,7 +313,7 @@ function readRowsFromDom() {
 }
 
 async function savePlan() {
-  const plan = { rules: readRowsFromDom(), fallback: fallbackSelect.value };
+  const plan = { rules: readRowsFromDom(), fallback: fallbackSelect.value === 'none' ? null : fallbackSelect.value };
   try {
     const res = await fetch('/api/routing', {
       method: 'PUT',
@@ -343,7 +353,8 @@ async function simulate() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Simulation failed');
     const psp = psps.find((p) => p.name === data.psp);
-    box.innerHTML = `Routed to <strong>${psp ? psp.displayName : data.psp}</strong><br>
+    const label = data.psp ? (psp ? psp.displayName : data.psp) : 'No route';
+    box.innerHTML = `Routed to <strong>${label}</strong><br>
       <span class="mono" style="color:#64748b">${escapeHtml(data.reason)}</span>`;
     box.classList.remove('hidden');
   } catch (e) {
