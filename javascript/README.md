@@ -75,6 +75,7 @@ javascript/
 ├── src/
 │   ├── library/               ── the unified library ──
 │   │   ├── unified-payments.ts   authorize · capture · void · refund + tokenAuthorize (PCI)
+│   │   ├── prism-trace.ts        wraps each SDK call → visible "🔷 prism" callout in the logs
 │   │   ├── cards.ts              sample test cards (approved/declined) + the Order type
 │   │   └── format.ts            console pretty-printing helpers
 │   ├── orchestrator/          ── pure, processor-free ──

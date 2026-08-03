@@ -21,6 +21,7 @@ import {
 import { getPsp, type PspName } from '../../config/psp-registry.js';
 import { toSdkCard, toSdkCurrency, type Order } from './cards.js';
 import { paymentStatusText, refundStatusText } from './format.js';
+import { tracePrism } from './prism-trace.js';
 
 export interface UnifiedResult {
   ok: boolean; // approved / authorized / charged (a usable success)
@@ -106,32 +107,34 @@ export async function authorize(
 ): Promise<UnifiedResult> {
   try {
     const client = new PaymentClient(getPsp(psp).buildConfig());
-    const response = await client.authorize({
-      merchantTransactionId: order.merchantTransactionId,
-      amount: { minorAmount: order.minorAmount, currency: toSdkCurrency(order.currency) },
-      paymentMethod: { card: toSdkCard(order.card) },
-      captureMethod: opts.captureMethod ?? types.CaptureMethod.AUTOMATIC,
-      address: { billingAddress: {} },
-      authType: types.AuthenticationType.NO_THREE_DS,
-      returnUrl: 'https://example.com/return',
-      // Some processors require these. Including them here keeps the unified
-      // request portable across every PSP in the registry (e.g. Cybersource
-      // needs customer.email, Adyen needs browserInfo).
-      customer: { email: { value: 'jane.workshop@example.com' } },
-      browserInfo: {
-        colorDepth: 24,
-        screenHeight: 900,
-        screenWidth: 1440,
-        javaEnabled: false,
-        javaScriptEnabled: true,
-        language: 'en-US',
-        timeZoneOffsetMinutes: -480,
-        acceptHeader: 'application/json',
-        userAgent: 'Mozilla/5.0 (workshop)',
-        acceptLanguage: 'en-US,en;q=0.9',
-        ipAddress: '1.2.3.4',
-      },
-    });
+    const response = await tracePrism({ client: 'PaymentClient', method: 'authorize', psp }, () =>
+      client.authorize({
+        merchantTransactionId: order.merchantTransactionId,
+        amount: { minorAmount: order.minorAmount, currency: toSdkCurrency(order.currency) },
+        paymentMethod: { card: toSdkCard(order.card) },
+        captureMethod: opts.captureMethod ?? types.CaptureMethod.AUTOMATIC,
+        address: { billingAddress: {} },
+        authType: types.AuthenticationType.NO_THREE_DS,
+        returnUrl: 'https://example.com/return',
+        // Some processors require these. Including them here keeps the unified
+        // request portable across every PSP in the registry (e.g. Cybersource
+        // needs customer.email, Adyen needs browserInfo).
+        customer: { email: { value: 'jane.workshop@example.com' } },
+        browserInfo: {
+          colorDepth: 24,
+          screenHeight: 900,
+          screenWidth: 1440,
+          javaEnabled: false,
+          javaScriptEnabled: true,
+          language: 'en-US',
+          timeZoneOffsetMinutes: -480,
+          acceptHeader: 'application/json',
+          userAgent: 'Mozilla/5.0 (workshop)',
+          acceptLanguage: 'en-US,en;q=0.9',
+          ipAddress: '1.2.3.4',
+        },
+      }),
+    );
     return normalizeAuthorize(psp, response);
   } catch (e) {
     return errorToResult(psp, 'authorize', e);
@@ -175,7 +178,9 @@ export async function tokenAuthorize(
         accessToken: { token: { value: opts.serverAccessToken }, tokenType: 'Bearer' },
       };
     }
-    const response = await client.tokenAuthorize(request);
+    const response = await tracePrism({ client: 'PaymentClient', method: 'tokenAuthorize', psp }, () =>
+      client.tokenAuthorize(request),
+    );
     return normalizeAuthorize(psp, response);
   } catch (e) {
     return errorToResult(psp, 'authorize', e);
@@ -191,12 +196,14 @@ export async function createClientAuthToken(
   order: Order,
 ): Promise<types.MerchantAuthenticationServiceCreateClientAuthenticationTokenResponse> {
   const client = new MerchantAuthenticationClient(getPsp(psp).buildConfig());
-  return client.createClientAuthenticationToken({
-    merchantClientSessionId: `${order.merchantTransactionId}_session`,
-    payment: {
-      amount: { minorAmount: order.minorAmount, currency: toSdkCurrency(order.currency) },
-    },
-  });
+  return tracePrism({ client: 'MerchantAuthenticationClient', method: 'createClientAuthenticationToken', psp }, () =>
+    client.createClientAuthenticationToken({
+      merchantClientSessionId: `${order.merchantTransactionId}_session`,
+      payment: {
+        amount: { minorAmount: order.minorAmount, currency: toSdkCurrency(order.currency) },
+      },
+    }),
+  );
 }
 
 export async function capture(
@@ -206,11 +213,13 @@ export async function capture(
 ): Promise<UnifiedResult> {
   try {
     const client = new PaymentClient(getPsp(psp).buildConfig());
-    const response = await client.capture({
-      merchantCaptureId: `${order.merchantTransactionId}_cap`,
-      connectorTransactionId,
-      amountToCapture: { minorAmount: order.minorAmount, currency: toSdkCurrency(order.currency) },
-    });
+    const response = await tracePrism({ client: 'PaymentClient', method: 'capture', psp }, () =>
+      client.capture({
+        merchantCaptureId: `${order.merchantTransactionId}_cap`,
+        connectorTransactionId,
+        amountToCapture: { minorAmount: order.minorAmount, currency: toSdkCurrency(order.currency) },
+      }),
+    );
     const status: number = response?.status ?? -1;
     const ok =
       status === types.PaymentStatus.CHARGED ||
@@ -243,10 +252,12 @@ export async function voidPayment(
 ): Promise<UnifiedResult> {
   try {
     const client = new PaymentClient(getPsp(psp).buildConfig());
-    const response = await client.void({
-      merchantVoidId: `${order.merchantTransactionId}_void`,
-      connectorTransactionId,
-    });
+    const response = await tracePrism({ client: 'PaymentClient', method: 'void', psp }, () =>
+      client.void({
+        merchantVoidId: `${order.merchantTransactionId}_void`,
+        connectorTransactionId,
+      }),
+    );
     const status: number = response?.status ?? -1;
     const ok =
       status === types.PaymentStatus.VOIDED ||
@@ -274,13 +285,15 @@ export async function refund(
   try {
     const client = new PaymentClient(getPsp(psp).buildConfig());
     const amount = refundMinorAmount ?? order.minorAmount;
-    const response = await client.refund({
-      merchantRefundId: `${order.merchantTransactionId}_ref`,
-      connectorTransactionId,
-      paymentAmount: order.minorAmount,
-      refundAmount: { minorAmount: amount, currency: toSdkCurrency(order.currency) },
-      reason: 'customer_request',
-    });
+    const response = await tracePrism({ client: 'PaymentClient', method: 'refund', psp }, () =>
+      client.refund({
+        merchantRefundId: `${order.merchantTransactionId}_ref`,
+        connectorTransactionId,
+        paymentAmount: order.minorAmount,
+        refundAmount: { minorAmount: amount, currency: toSdkCurrency(order.currency) },
+        reason: 'customer_request',
+      }),
+    );
     const status: number = response?.status ?? -1;
     const ok =
       status === types.RefundStatus.REFUND_SUCCESS ||
