@@ -13,6 +13,10 @@ import type { PspName } from '../../config/psp-registry.js';
 export interface RoutingContext {
   minorAmount: number; // amount in minor units (cents)
   currency: string; // ISO 4217, e.g. 'USD'
+  // Payment-method attributes can drive routing too. Unlike amount/currency (which
+  // the merchant sets), the card number depends on the CUSTOMER — e.g. route by BIN
+  // (card prefix). Only available when the merchant has the card server-side.
+  cardNumber?: string;
 }
 
 export interface RoutingRule {

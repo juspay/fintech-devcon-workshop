@@ -22,8 +22,8 @@ import {
 import { type PspName } from '../../config/psp-registry.js';
 import { listActive } from './active-psps.js';
 
-export type ConditionField = 'amount' | 'currency';
-export type ConditionOperator = 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'neq';
+export type ConditionField = 'amount' | 'currency' | 'card';
+export type ConditionOperator = 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'neq' | 'startsWith';
 
 // A single editable routing rule. For `amount`, `value` is in MINOR units (cents)
 // and only the numeric operators apply. For `currency`, `value` is an ISO code and
@@ -56,6 +56,7 @@ const OP_SYMBOL: Record<ConditionOperator, string> = {
   lte: '≤',
   eq: '=',
   neq: '≠',
+  startsWith: 'starts with',
 };
 
 // ── Evaluate one declarative rule against a payment context ──────────────────
@@ -77,8 +78,20 @@ function evalRule(rule: DeclarativeRule, ctx: RoutingContext): boolean {
         return a === v;
       case 'neq':
         return a !== v;
+      default:
+        return false;
     }
   }
+
+  if (rule.field === 'card') {
+    // BIN routing: match the card number's prefix. The card is only present in the
+    // processor-agnostic (raw) flow; in the tokenized flow ctx.cardNumber is
+    // undefined, so card rules simply don't match there.
+    const pan = String(ctx.cardNumber ?? '').replace(/\s+/g, '');
+    const prefix = String(rule.value).replace(/\s+/g, '');
+    return rule.operator === 'startsWith' && prefix.length > 0 && pan.startsWith(prefix);
+  }
+
   // currency
   const c = ctx.currency.toUpperCase();
   const v = String(rule.value).toUpperCase();
@@ -93,11 +106,13 @@ function evalRule(rule: DeclarativeRule, ctx: RoutingContext): boolean {
 }
 
 function ruleReason(rule: DeclarativeRule): string {
-  const val =
-    rule.field === 'amount'
-      ? `${(Number(rule.value) / 100).toFixed(2)}`
-      : String(rule.value).toUpperCase();
-  return `${rule.field} ${OP_SYMBOL[rule.operator]} ${val} → ${rule.use}`;
+  if (rule.field === 'amount') {
+    return `amount ${OP_SYMBOL[rule.operator]} ${(Number(rule.value) / 100).toFixed(2)} → ${rule.use}`;
+  }
+  if (rule.field === 'card') {
+    return `card starts with ${String(rule.value)} → ${rule.use}`;
+  }
+  return `currency ${OP_SYMBOL[rule.operator]} ${String(rule.value).toUpperCase()} → ${rule.use}`;
 }
 
 function compileRules(rules: DeclarativeRule[]): RoutingRule[] {
@@ -127,7 +142,7 @@ export function getPlan(): DeclarativePlan {
   return currentPlan;
 }
 
-const KNOWN_OPERATORS: ConditionOperator[] = ['gt', 'gte', 'lt', 'lte', 'eq', 'neq'];
+const KNOWN_OPERATORS: ConditionOperator[] = ['gt', 'gte', 'lt', 'lte', 'eq', 'neq', 'startsWith'];
 
 // Validate + persist a plan coming from the control-plane UI. Returns an error
 // string on the first problem, or null when the plan is accepted.
@@ -143,8 +158,8 @@ export function setPlan(plan: DeclarativePlan): string | null {
   }
 
   for (const r of plan.rules) {
-    if (r.field !== 'amount' && r.field !== 'currency') {
-      return `rule ${r.id}: field must be "amount" or "currency"`;
+    if (r.field !== 'amount' && r.field !== 'currency' && r.field !== 'card') {
+      return `rule ${r.id}: field must be "amount", "currency" or "card"`;
     }
     if (!KNOWN_OPERATORS.includes(r.operator)) {
       return `rule ${r.id}: invalid operator "${r.operator}"`;
@@ -152,8 +167,17 @@ export function setPlan(plan: DeclarativePlan): string | null {
     if (r.field === 'currency' && r.operator !== 'eq' && r.operator !== 'neq') {
       return `rule ${r.id}: currency conditions only support "=" or "≠"`;
     }
+    if (r.field === 'card' && r.operator !== 'startsWith') {
+      return `rule ${r.id}: card conditions only support "starts with"`;
+    }
+    if (r.operator === 'startsWith' && r.field !== 'card') {
+      return `rule ${r.id}: "starts with" only applies to card`;
+    }
     if (r.field === 'amount' && Number.isNaN(Number(r.value))) {
       return `rule ${r.id}: amount value must be a number (minor units)`;
+    }
+    if (r.field === 'card' && !/^\d{1,19}$/.test(String(r.value))) {
+      return `rule ${r.id}: card prefix must be 1–19 digits`;
     }
     if (!known.has(r.use)) return `rule ${r.id}: PSP "${r.use}" is not an enabled processor`;
   }

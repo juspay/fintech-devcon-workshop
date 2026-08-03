@@ -43,7 +43,7 @@ export function persistSnapshot(): void {
     plan: {
       rules: plan.rules.map((r) => ({
         id: clean(r.id),
-        field: r.field === 'currency' ? 'currency' : 'amount',
+        field: r.field === 'currency' ? 'currency' : r.field === 'card' ? 'card' : 'amount',
         operator: clean(r.operator),
         value: r.field === 'amount' ? Number(r.value) || 0 : clean(r.value),
         use: clean(r.use),

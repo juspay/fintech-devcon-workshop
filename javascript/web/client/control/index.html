@@ -25,14 +25,14 @@
       <!-- Rules editor -->
       <section class="panel">
         <h2>Routing rules</h2>
-        <p class="panel-hint">Evaluated top-to-bottom; the <strong>first matching</strong> rule wins. If none match, the fallback is used. Amounts are in the cart currency.</p>
+        <p class="panel-hint">Evaluated top-to-bottom; the <strong>first matching</strong> rule wins. If none match, the fallback is used. <strong>Amount</strong> / <strong>Currency</strong> come from the cart (the merchant); a <strong>Card number</strong> rule matches the shopper’s card by prefix (BIN) — a customer attribute — and applies to <strong>processor-agnostic</strong> checkout only, where the merchant has the card (the tokenized flow captures the card after routing).</p>
 
         <table class="rules-table">
           <thead>
             <tr>
               <th style="width:32px"></th>
               <th>If</th>
-              <th style="width:70px"></th>
+              <th style="width:110px"></th>
               <th>Value</th>
               <th style="width:40px">→</th>
               <th>Route to</th>

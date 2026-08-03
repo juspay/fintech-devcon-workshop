@@ -48,8 +48,12 @@ why, and every attempt with its normalized status.
 ## The control plane
 
 Edit the condition-based routing rules — the same `RoutingPlan` / `selectPsp` from step
-6a, made **declarative and editable** (`{ field: amount | currency, operator, value → PSP }`)
-and compiled back into `selectPsp`. Reorder rules (first match wins), set the fallback
+6a, made **declarative and editable** (`{ field: amount | currency | card, operator, value → PSP }`)
+and compiled back into `selectPsp`. **Amount** and **currency** are merchant attributes;
+a **Card number** rule matches the shopper's card by prefix (`starts with`, i.e. BIN) — a
+customer attribute — to demonstrate routing on payment-method data. Card rules apply to
+**processor-agnostic** checkout only (the tokenized flow captures the card after routing,
+so the server doesn't have it yet). Reorder rules (first match wins), set the fallback
 (or **None** for a clean slate — an unmatched payment then has no route and the store
 returns a "no processor" error), and simulate a route. Save is validated server-side.
 With fallback **None**, no rules, and all processors removed, you can start the workshop
