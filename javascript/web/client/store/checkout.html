@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout — Payment Orchestrator Workshop</title>
+  <link rel="stylesheet" href="/shared/styles.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div>
+        <h1>🛒 Checkout</h1>
+        <div class="subtitle">Choose a processor, or let the orchestrator route</div>
+      </div>
+      <nav class="top-nav">
+        <a href="/store" class="nav-link">← Continue shopping</a>
+        <a href="/control" class="nav-link">Control plane</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container checkout-container">
+    <div class="checkout-layout">
+      <!-- Left: order summary + sample test cards -->
+      <div class="left-column">
+        <div class="order-summary">
+          <h2>Order Summary</h2>
+          <div id="order-items"></div>
+          <div class="order-total">
+            <span>Total:</span>
+            <span id="order-total-amount">$0.00</span>
+          </div>
+        </div>
+
+        <!-- Sample test cards (rendered by checkout.js; contents depend on mode +
+             processor). In processor-agnostic mode each card has a "Use" button
+             that fills the card form on the right. -->
+        <div id="sample-cards" class="sample-cards hidden">
+          <div class="sample-cards-head">
+            <span class="test-card-badge">TEST CARDS</span>
+            <span id="sample-cards-hint" class="sample-cards-hint"></span>
+          </div>
+          <div id="sample-cards-list"></div>
+        </div>
+      </div>
+
+      <!-- Right: request config + payment -->
+      <div class="payment-section">
+        <h2>Payment</h2>
+
+        <!-- Request-level configuration -->
+        <div class="request-config">
+          <h3>Request configuration</h3>
+          <p class="config-hint">Set per this checkout request. This is what an orchestrator lets you control.</p>
+
+          <div class="config-group">
+            <span class="config-label">Card handling</span>
+            <div class="segmented" id="mode-toggle">
+              <button type="button" data-mode="pci" class="active">🔒 Processor specific tokenization</button>
+              <button type="button" data-mode="raw">Processor agnostic tokenization</button>
+            </div>
+          </div>
+
+          <div class="config-group">
+            <span class="config-label">Processor</span>
+            <select id="processor-select" class="config-select">
+              <option value="auto">⚙️ Automatic — route by condition</option>
+              <!-- PSP options injected from /api/psps -->
+            </select>
+          </div>
+
+          <div class="config-group" id="retry-group">
+            <label class="checkbox-row">
+              <input type="checkbox" id="retry-toggle">
+              Enable retry / fallback (try other processors if the first declines)
+            </label>
+          </div>
+
+          <div id="mode-note" class="mode-note hidden"></div>
+        </div>
+
+        <div id="payment-connector-info" class="connector-info hidden"></div>
+
+        <div id="loading" class="loading hidden">
+          <div class="spinner"></div>
+          <p>Initializing secure payment...</p>
+        </div>
+
+        <!-- Processor-agnostic (raw) card form. The card is posted to the server and
+             sent to the routed processor via the unified library's authorize(). -->
+        <div id="raw-checkout-container">
+          <form id="raw-card-form" class="card-form" autocomplete="off" novalidate>
+            <label>Card number
+              <input id="cf-number" inputmode="numeric" placeholder="4111 1111 1111 1111" value="4111 1111 1111 1111">
+            </label>
+            <div class="cf-row">
+              <label>Expiry month
+                <input id="cf-month" inputmode="numeric" placeholder="MM" maxlength="2" value="03">
+              </label>
+              <label>Expiry year
+                <input id="cf-year" inputmode="numeric" placeholder="YYYY" maxlength="4" value="2030">
+              </label>
+              <label>CVC
+                <input id="cf-cvc" inputmode="numeric" placeholder="CVC" maxlength="4" value="737">
+              </label>
+            </div>
+            <label>Cardholder name
+              <input id="cf-name" placeholder="Jane Workshop" value="Jane Workshop">
+            </label>
+          </form>
+          <button id="raw-submit-btn" class="submit-btn" type="button">
+            <span id="raw-btn-text">Pay</span>
+            <span id="raw-btn-spinner" class="btn-spinner hidden"><div class="spinner-small"></div></span>
+          </button>
+          <div id="raw-error" class="card-errors"></div>
+        </div>
+
+        <!-- PCI: initialize secure payment, then the connector's own form appears -->
+        <div id="pci-init-container" class="hidden">
+          <button id="pci-init-btn" class="submit-btn">Initialize secure payment →</button>
+        </div>
+
+        <!-- Stripe -->
+        <div id="stripe-checkout-container" class="checkout-container hidden">
+          <div id="payment-element"></div>
+          <button id="stripe-submit-btn" class="submit-btn">
+            <span id="btn-text">Pay Now</span>
+            <span id="btn-spinner" class="btn-spinner hidden"><div class="spinner-small"></div></span>
+          </button>
+          <div id="stripe-error" class="card-errors"></div>
+        </div>
+
+        <!-- GlobalPay -->
+        <div id="globalpay-checkout-container" class="checkout-container hidden">
+          <div id="credit-card"></div>
+          <div id="globalpay-error" class="card-errors"></div>
+        </div>
+
+        <!-- Adyen -->
+        <div id="adyen-checkout-container" class="checkout-container hidden">
+          <div id="adyen-card-container"></div>
+          <div id="adyen-error" class="card-errors"></div>
+        </div>
+
+        <!-- Result + orchestration trace -->
+        <div id="payment-result" class="payment-result hidden">
+          <div id="result-icon"></div>
+          <h3 id="result-title"></h3>
+          <p id="result-message"></p>
+          <p id="result-txn-id" class="txn-id"></p>
+          <div id="result-trace" class="trace"></div>
+          <div class="result-actions">
+            <a href="/store" class="continue-btn">Continue Shopping</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Connector SDKs (browser-side tokenization for the PCI path).
+       `defer` so a slow/offline CDN never blocks rendering the checkout — they're
+       only needed when the shopper initializes a PCI payment. Deferred scripts still
+       run (in order) before DOMContentLoaded, so the globals are ready by then. -->
+  <script defer src="https://js.stripe.com/v3/"></script>
+  <script defer src="https://js.globalpay.com/4.1.21/globalpayments.js"></script>
+  <script defer src="https://checkoutshopper-test.adyen.com/checkoutshopper/sdk/6.31.1/adyen.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://checkoutshopper-test.adyen.com/checkoutshopper/sdk/6.31.1/adyen.css" crossorigin="anonymous">
+
+  <script defer src="/store/js/stripe-sdk.js"></script>
+  <script defer src="/store/js/globalpay-sdk.js"></script>
+  <script defer src="/store/js/adyen-sdk.js"></script>
+  <script defer src="/store/js/checkout.js"></script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Plane — Payment Orchestrator Workshop</title>
+  <link rel="stylesheet" href="/shared/styles.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div>
+        <h1>🎛️ Control Plane</h1>
+        <div class="subtitle">Condition-based routing — the same rules the store’s Automatic mode uses</div>
+      </div>
+      <nav class="top-nav">
+        <a href="/store" class="nav-link">Store</a>
+        <a href="/control" class="nav-link active">Control plane</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container control-main">
+    <div class="control-stack">
+      <!-- Rules editor -->
+      <section class="panel">
+        <h2>Routing rules</h2>
+        <p class="panel-hint">Evaluated top-to-bottom; the <strong>first matching</strong> rule wins. If none match, the fallback is used. Amounts are in the cart currency.</p>
+
+        <table class="rules-table">
+          <thead>
+            <tr>
+              <th style="width:32px"></th>
+              <th>If</th>
+              <th style="width:70px"></th>
+              <th>Value</th>
+              <th style="width:40px">→</th>
+              <th>Route to</th>
+              <th style="width:96px"></th>
+            </tr>
+          </thead>
+          <tbody id="rules-body"></tbody>
+        </table>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="add-rule-btn">+ Add rule</button>
+        </div>
+
+        <div class="fallback-row">
+          <span class="config-label" style="margin:0">Fallback (no rule matched)</span>
+          <select id="fallback-select"></select>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="save-btn">Save routing plan</button>
+          <button class="btn btn-secondary" id="revert-btn">Revert</button>
+          <span class="save-status" id="save-status"></span>
+        </div>
+      </section>
+
+      <!-- Processors: enable/disable + credentials -->
+      <section class="panel">
+        <h2>Processors</h2>
+        <p class="panel-hint">The processors the orchestrator can use. Badges show tokenization support (Specific = processor-specific tokenization; Agnostic only = raw path only) and credential status. Use 🔑 to add a processor’s keys, and <strong>Remove</strong> / <strong>Add</strong> to bring processors in and out one at a time. A processor in use by a routing rule or the fallback can’t be removed until the plan is updated. Changes are runtime-only (put keys in <span class="mono">.env</span> to persist); the store reflects them on its next load.</p>
+        <ul class="psp-list" id="psp-list"></ul>
+        <div class="save-status" id="psp-status"></div>
+
+        <div id="add-psp-area" class="add-psp-area hidden">
+          <span class="config-label" style="display:block;margin-bottom:10px">Removed — add back</span>
+          <div id="add-psp-list" class="add-psp-list"></div>
+        </div>
+      </section>
+
+      <!-- Simulate a route -->
+      <section class="panel">
+        <h2>Simulate a route</h2>
+        <p class="panel-hint">Preview which processor a cart would hit under the currently saved plan. (Save your edits first.)</p>
+        <div class="simulate-fields">
+          <input type="number" id="sim-amount" placeholder="Amount" value="20.00" step="0.01" min="0">
+          <select id="sim-currency">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+          </select>
+          <button class="btn btn-secondary" id="sim-btn">Route it →</button>
+        </div>
+        <div class="simulate-result hidden" id="sim-result"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/control/js/control.js"></script>
+</body>
+</html>

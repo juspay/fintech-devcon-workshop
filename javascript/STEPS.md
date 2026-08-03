@@ -216,5 +216,43 @@ javascript/
 │       ├── step2-routing.ts     ← Step 6a demo
 │       ├── step3-retry.ts       ← Step 6b demo
 │       └── step4-extend.ts      ← Step 7 demo
-└── test/                        ← Step 8: the test suite
+├── test/                        ← Step 8: the test suite
+└── web/                         ← Step 9: the web experience (npm run web)
+    ├── server/                  ← Express app: /store + /control + /api
+    └── client/                  ← storefront, checkout, control-plane UI
 ```
+
+---
+
+## Step 9 — See it in a browser: store + control plane
+
+Everything so far is CLI. This step puts the SAME unified library and orchestrator
+behind a web experience, so participants can watch routing happen in a real
+e-commerce checkout.
+
+```bash
+npm run web
+```
+
+Then open two URLs:
+
+- **http://localhost:3000/store** — an e-commerce storefront and checkout. The
+  checkout has a **request-configuration** panel:
+  - **Card handling:** _PCI (tokenized)_ — the processor's own SDK collects the card
+    in hosted fields and the browser sends only a token — vs _Raw card (non-PCI)_ —
+    a test card posted to the server. **Both** finish through the unified library
+    (`tokenAuthorize` vs `authorize`), which is the whole point.
+  - **Processor:** _Automatic_ (route by the control-plane rules) or a specific PSP.
+  - **Retry/fallback** (raw + Automatic): try the routed PSP first, then the others.
+  The result panel shows the full orchestration trace (routed-to, reason, each attempt).
+
+- **http://localhost:3000/control** — the **control plane**: edit the condition-based
+  routing rules (the same `RoutingPlan`/`selectPsp` from Step 6a, now made editable and
+  served from memory), pick the fallback, and simulate a route. Saving is immediately
+  honored by the store's Automatic mode.
+
+> No credentials? Raw-card mode still runs end-to-end (you'll see a connector error
+> instead of a charge). The PCI path needs each connector's sandbox keys — see
+> `web/README.md`. **GlobalPay** was added to the registry (`config/psp-registry.ts`)
+> exactly like Cybersource in Step 7, so the demo's Stripe/Adyen/GlobalPay browser
+> tokenization is reused as-is; Cybersource is raw-card only.

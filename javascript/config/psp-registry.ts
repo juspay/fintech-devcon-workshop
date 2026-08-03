@@ -18,7 +18,7 @@ import { types } from 'hyperswitch-prism';
 
 const { Environment } = types;
 
-export type PspName = 'stripe' | 'adyen' | 'cybersource';
+export type PspName = 'stripe' | 'adyen' | 'cybersource' | 'globalpay';
 
 export interface PspEntry {
   displayName: string;
@@ -87,6 +87,25 @@ export const PSP_REGISTRY: Record<PspName, PspEntry> = {
           apiKey: { value: env('CYBERSOURCE_API_KEY') },
           merchantAccount: { value: env('CYBERSOURCE_MERCHANT_ACCOUNT') },
           apiSecret: { value: env('CYBERSOURCE_API_SECRET') },
+        },
+      },
+    }),
+  },
+
+  // ── PSP-4 (added for the WEB experience — reuses the demo's GlobalPay client SDK) ──
+  //   GlobalPay authenticates with an appId + appKey (not an apiKey). It is used by
+  //   the browser-tokenized (PCI) checkout in web/. See javascript/web/README.md.
+  globalpay: {
+    displayName: 'GlobalPay',
+    currencies: ['USD', 'EUR', 'GBP'],
+    envKeys: ['GLOBALPAY_APP_ID', 'GLOBALPAY_APP_KEY'],
+    isConfigured: () => isSet('GLOBALPAY_APP_ID') && isSet('GLOBALPAY_APP_KEY'),
+    buildConfig: () => ({
+      options: { environment: Environment.SANDBOX },
+      connectorConfig: {
+        globalpay: {
+          appId: { value: env('GLOBALPAY_APP_ID') },
+          appKey: { value: env('GLOBALPAY_APP_KEY') },
         },
       },
     }),

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store — Payment Orchestrator Workshop</title>
+  <link rel="stylesheet" href="/shared/styles.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div>
+        <h1>🛒 Hyperswitch Store</h1>
+        <div class="subtitle">Orchestrator demo storefront</div>
+      </div>
+      <div class="header-right">
+        <nav class="top-nav">
+          <a href="/store" class="nav-link active">Store</a>
+          <a href="/control" class="nav-link">Control plane</a>
+        </nav>
+        <select id="currency-selector" class="currency-selector">
+          <option value="USD">USD ($)</option>
+          <option value="EUR">EUR (€)</option>
+        </select>
+        <button id="cart-btn" class="cart-btn">
+          <span class="cart-icon">🛒</span>
+          <span id="cart-count" class="cart-count">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <h2>Products</h2>
+    <div id="products-grid" class="products-grid">
+      <!-- Products rendered from /api/store/products -->
+    </div>
+  </main>
+
+  <!-- Cart Sidebar -->
+  <div id="cart-sidebar" class="cart-sidebar hidden">
+    <div class="cart-header">
+      <h3>Your Cart</h3>
+      <button id="close-cart" class="close-btn">&times;</button>
+    </div>
+    <div id="cart-items" class="cart-items"></div>
+    <div class="cart-footer">
+      <div class="cart-total">
+        <span>Total:</span>
+        <span id="cart-total-amount">$0.00</span>
+      </div>
+      <button id="checkout-btn" class="checkout-btn" disabled>Proceed to Checkout</button>
+    </div>
+  </div>
+
+  <div id="cart-overlay" class="cart-overlay hidden"></div>
+
+  <script src="/store/js/app.js"></script>
+</body>
+</html>
