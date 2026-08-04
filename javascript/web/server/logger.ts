@@ -16,7 +16,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { randomUUID } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Request, Response, NextFunction } from 'express';
+
+// Carries the current request's correlation id across async boundaries, so code
+// with no `req` handle (e.g. the SDK-call tracer, deep in the unified library) can
+// still tag its log lines with the reqId — which is also what makes them indent.
+const requestContext = new AsyncLocalStorage<{ reqId: string }>();
+
+// The reqId of the in-flight request, if any (undefined outside a request).
+export function currentReqId(): string | undefined {
+  return requestContext.getStore()?.reqId;
+}
 
 export type Level = 'debug' | 'info' | 'warn' | 'error';
 const RANK: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
@@ -119,7 +130,9 @@ export function requestLogger(): (req: Request, res: Response, next: NextFunctio
       const level: Level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
       emit(level, 'http', `${req.method} ${path} → ${res.statusCode}`, { reqId, ms });
     });
-    next();
+    // Run the rest of the request inside the async context so downstream code
+    // (including the SDK-call tracer) can recover this reqId via currentReqId().
+    requestContext.run({ reqId }, next);
   };
 }
 
