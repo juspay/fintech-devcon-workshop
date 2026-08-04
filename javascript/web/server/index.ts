@@ -87,17 +87,18 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
-// The hyperswitch-prism SDK ships an undici@6 HTTP dispatcher and hands it to the
-// global fetch(). Node 23+ bundles undici 7, whose handler interface changed, so
-// that dispatcher is rejected with `UND_ERR_INVALID_ARG: invalid onError method`
-// and EVERY connector call fails as "Network Error: fetch failed". Warn loudly so
-// this doesn't look like a network/credential problem. Use Node 18/20/22 LTS.
-const nodeMajor = Number(process.versions.node.split('.')[0]);
-if (nodeMajor >= 23) {
-  log.warn(
-    `Node ${process.versions.node}: the SDK's undici@6 dispatcher is incompatible with Node 23+ ` +
-    `(undici 7) — real payments will fail with "Network Error: fetch failed". Use Node 20 or 22 LTS (see .nvmrc).`,
-    { node: process.versions.node },
+// The hyperswitch-prism SDK hands its bundled undici@6 dispatcher to the global
+// fetch(). When the runtime's built-in undici is NOT v6 (some Node 23/24 builds ship
+// undici 7, whose Dispatcher interface differs), that dispatcher can be rejected with
+// `UND_ERR_INVALID_ARG: invalid onError method` → "Network Error: fetch failed".
+// src/library/undici-compat.ts handles this by routing the SDK's calls through
+// undici@6 on any non-v6 runtime; here we just note when that shim is in effect.
+const builtinUndiciMajor = Number((process.versions.undici ?? '').split('.')[0]);
+if (builtinUndiciMajor !== 6) {
+  log.info(
+    `Node ${process.versions.node} bundles undici ${process.versions.undici}; ` +
+    `the undici@6 compatibility shim is active for SDK calls (see src/library/undici-compat.ts).`,
+    { node: process.versions.node, undici: process.versions.undici },
   );
 }
 

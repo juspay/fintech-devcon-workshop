@@ -50,11 +50,13 @@ npm test                 # verify setup (no credentials needed)
 npm run web              # open http://localhost:3000/store and /control
 ```
 
-**Requirements:** Git and **Node.js 18, 20, or 22 LTS — not 23+** (newer Node bundles
-undici 7, which breaks the SDK's `undici@6` HTTP dispatcher and makes every connector call
-fail with *"Network Error: fetch failed"*; `.nvmrc` pins Node 22). Linux x64, macOS, or
-Windows via WSL2 (the SDK ships a prebuilt native x86_64 library — no Rust toolchain, no
-build step; scripts run TypeScript directly via `tsx`).
+**Requirements:** Git and **Node.js 18+** (any current LTS is fine). The SDK's HTTP layer
+targets **undici 6**; on runtimes that bundle a newer undici (some Node 23/24 builds ship
+undici 7, whose dispatcher interface differs), a small compatibility shim
+([`src/library/undici-compat.ts`](./javascript/src/library/undici-compat.ts)) transparently
+routes the SDK's calls through undici 6 — so no Node-version pinning is needed. Linux x64,
+macOS, or Windows via WSL2 (the SDK ships a prebuilt native x86_64 library — no Rust
+toolchain, no build step; scripts run TypeScript directly via `tsx`).
 
 The **web experience** puts the same unified library and orchestrator behind an
 e-commerce storefront (`/store`) and an orchestration **control plane** (`/control`).
