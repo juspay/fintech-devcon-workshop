@@ -4,7 +4,7 @@
 and how a payment travels through the code. This is a reference, not a walkthrough:
 
 - **New here?** Start with the **[root README](../README.md)** — it has the workshop
-  sequence, one-time setup, and requirements (Node 18/20/22 — **not** 23+).
+  sequence, one-time setup, and requirements (**Node 18+**).
 - **Prefer the terminal?** The **[CLI walkthrough](./CLI-WALKTHROUGH.md)** drives the same
   concepts from the command line.
 - **The browser app internals** are in **[web/README.md](./web/README.md)**.

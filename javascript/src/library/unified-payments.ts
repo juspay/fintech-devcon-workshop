@@ -9,6 +9,10 @@
 // + retry) is built entirely on top of these results.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// MUST be first: patches the global fetch on Node 23+ so the SDK's undici@6
+// dispatcher works. No-op on Node 18–22. See ./undici-compat.ts.
+import './undici-compat.js';
+
 import {
   PaymentClient,
   MerchantAuthenticationClient,

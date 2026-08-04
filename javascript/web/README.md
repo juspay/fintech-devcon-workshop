@@ -5,22 +5,21 @@ a browser experience, so participants can watch routing happen in a real checkou
 
 ```bash
 cd javascript
-nvm use            # Node 20 or 22 LTS — see the Node version note below
-npm install
+npm install        # Node 18+ (the undici note below is handled automatically)
 npm run web
 ```
 
 - **http://localhost:3000/store** — e-commerce storefront + checkout
 - **http://localhost:3000/control** — routing control plane
 
-> **⚠️ Node version matters (18/20/22 LTS — not 23+).** The `hyperswitch-prism` SDK
-> ships an `undici@6` HTTP dispatcher and passes it to the global `fetch()`. Node 23+
-> bundles undici 7, whose handler interface changed, so the dispatcher is rejected with
-> `UND_ERR_INVALID_ARG: invalid onError method` and **every** connector call — raw or
-> PCI — fails as `Network Error: fetch failed` (e.g. a 502 on "Initialize secure
-> payment"). This is not a network or credentials issue. Use Node 20 or 22 (`.nvmrc`
-> pins 22); the server prints a warning at startup if it detects Node 23+. This affects
-> the CLI steps too (`npm run run:payment`).
+> **ℹ️ Node & undici (handled automatically).** The `hyperswitch-prism` SDK builds an
+> `undici@6` HTTP dispatcher and hands it to the global `fetch()`. On runtimes whose
+> built-in undici isn't v6 (some Node 23/24 builds ship undici 7, whose dispatcher
+> interface differs — `UND_ERR_INVALID_ARG: invalid onError method`), that would surface
+> as `Network Error: fetch failed`. **A compatibility shim** (`src/library/undici-compat.ts`,
+> imported first by `unified-payments.ts`) routes the SDK's calls through undici 6 on any
+> non-v6 runtime, so **Node 18+ just works** — CLI and web alike. The shim is a no-op on
+> Node 18–22; when it activates it logs one `[undici-compat]` line.
 
 Both pages are served by one Express process (`web/server/index.ts`), so the routing
 plan you edit in `/control` is immediately used by the store's Automatic mode (shared

@@ -14,7 +14,9 @@ const log = createLogger('net');
 function hintFor(code?: string): string | undefined {
   switch (code) {
     case 'UND_ERR_INVALID_ARG':
-      return "Node 23+ / undici mismatch — this fails before any network. Use Node 20 or 22 LTS (see .nvmrc).";
+      return "undici version mismatch (the SDK's v6 dispatcher vs the runtime's fetch) — this fails before any " +
+        "network. The undici@6 shim (src/library/undici-compat.ts) should prevent it; if you see this, the shim " +
+        "didn't load. Node 18–22 also avoids it.";
     case 'ENOTFOUND':
       return 'DNS lookup failed — check your network/DNS.';
     case 'ECONNREFUSED':
