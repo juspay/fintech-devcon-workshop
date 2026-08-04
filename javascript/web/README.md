@@ -24,14 +24,14 @@ npm run web
 
 Both pages are served by one Express process (`web/server/index.ts`), so the routing
 plan you edit in `/control` is immediately used by the store's Automatic mode (shared
-in-memory state, restored at boot from `web/routing-plan.json`).
+in-memory state, restored at boot from `web/orchestration-config.json`).
 
 > **The workshop ships empty — a clean slate.** Out of the box there are **no routing
 > rules, no fallback, and no enabled processors**. That's deliberate: you build the
 > orchestrator up live. Your first moves in `/control` are to **add a processor** (🔑
 > its keys, or Add it to the active set) and then **add a rule or set the fallback**.
 > Until a processor is enabled and something routes, a checkout returns a "no
-> processor" error — that's the empty state, not a bug. `git checkout web/routing-plan.json`
+> processor" error — that's the empty state, not a bug. `git checkout web/orchestration-config.json`
 > returns you to this clean slate at any time.
 
 ## The store checkout — request-level configuration
@@ -87,13 +87,13 @@ orchestrator can use:
   returns 409), so the routing plan never dangles.
 
 **Persistence — a tracked, hand-editable file.** The **routing plan** and the
-**enabled-processor set** are saved to `web/routing-plan.json` on every change and
+**enabled-processor set** are saved to `web/orchestration-config.json` on every change and
 restored at boot. Unlike a hidden runtime dotfile, this is a **git-tracked file in your
 working tree**, so it doubles as a hands-on teaching artifact: after any `/control`
-action, run `git diff web/routing-plan.json` to see exactly what your click did, or
+action, run `git diff web/orchestration-config.json` to see exactly what your click did, or
 `cat` it to read the declarative rule model. It's **two-way** — edit the file by hand
 and the server reloads it into the running UI (shown on the control page's next load).
-`git checkout web/routing-plan.json` resets the plan + enabled set to the workshop
+`git checkout web/orchestration-config.json` resets the plan + enabled set to the workshop
 default. **Credentials are never written there** — secrets stay in `process.env` /
 `.env` only and reset on restart (edit `.env` to persist keys).
 
@@ -168,12 +168,12 @@ web/
 │   ├── active-psps.ts      the enabled-processor set (add/remove live)
 │   ├── credentials.ts      set a processor's keys at runtime (into process.env)
 │   ├── sessions.ts         connector-specific PCI session bootstrap (Stripe/Adyen/GlobalPay)
-│   ├── control-state.ts    read/write + watch routing-plan.json (never secrets)
+│   ├── control-state.ts    read/write + watch orchestration-config.json (never secrets)
 │   ├── logger.ts           structured, request-correlated logs
 │   ├── fetch-diagnostics.ts surfaces the Node-23 undici error before the SDK swallows it
 │   ├── products.ts         catalog
 │   └── routes/             store.ts, routing.ts, psps.ts
-├── routing-plan.json       tracked control-plane state (plan + enabled set); UI writes it, you can hand-edit it
+├── orchestration-config.json       tracked control-plane state (plan + enabled set); UI writes it, you can hand-edit it
 └── client/
     ├── shared/styles.css
     ├── store/              index.html, checkout.html, js/{app,checkout,stripe-sdk,globalpay-sdk,adyen-sdk}.js

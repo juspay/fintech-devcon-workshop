@@ -7,9 +7,9 @@
 // bring processors online one at a time.
 //
 // The workshop starts with a CLEAN SLATE: no processors enabled. The presenter
-// brings them online one at a time from /control (or via routing-plan.json). Boot
+// brings them online one at a time from /control (or via orchestration-config.json). Boot
 // restores whatever was saved (see control-state.ts); with the shipped empty
-// routing-plan.json that means zero. In-memory only — resets on restart.
+// orchestration-config.json that means zero. In-memory only — resets on restart.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { listPsps, type PspName } from '../../config/psp-registry.js';

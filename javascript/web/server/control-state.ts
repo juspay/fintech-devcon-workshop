@@ -4,16 +4,16 @@
 // the ROUTING PLAN and the ENABLED-PROCESSOR SET are persisted — never secrets.
 // Credentials remain in process.env / .env only and are never written here.
 //
-// The file is web/routing-plan.json — a VISIBLE, git-TRACKED artifact (not a
+// The file is web/orchestration-config.json — a VISIBLE, git-TRACKED artifact (not a
 // hidden dotfile). Every /control change rewrites it, so a workshop attendee can
 // watch it change in their working tree and `git diff` exactly what a click did.
 // It is also HAND-EDITABLE: watchPlanFile() reloads the file when it changes on
-// disk, so editing routing-plan.json by hand is reflected in the running UI (on
+// disk, so editing orchestration-config.json by hand is reflected in the running UI (on
 // its next load). This makes the control plane a two-way, touch-and-feel surface.
 //
 // Route handlers call persistSnapshot() after a successful mutation; the server
 // calls hydrateFromDisk() then watchPlanFile() once at boot. The file lives at
-// web/routing-plan.json (outside web/client, so it is never served).
+// web/orchestration-config.json (outside web/client, so it is never served).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import fs from 'node:fs';
@@ -30,10 +30,11 @@ const log = createLogger('persist');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIR = path.join(__dirname, '..');
-const FILE_NAME = 'routing-plan.json';
+const FILE_NAME = 'orchestration-config.json';
 const FILE = path.join(DIR, FILE_NAME);
-// Pre-web-9 builds wrote a hidden dotfile; read it once so upgrading doesn't reset state.
-const LEGACY_FILE = path.join(DIR, '.control-state.json');
+// Earlier builds used a hidden dotfile (.control-state.json), then routing-plan.json.
+// Read the first one that exists so upgrading an older checkout doesn't reset state.
+const LEGACY_FILES = [path.join(DIR, 'routing-plan.json'), path.join(DIR, '.control-state.json')];
 
 interface PersistedState {
   version: number;
@@ -104,7 +105,8 @@ function apply(parsed: Partial<PersistedState>): void {
 export function hydrateFromDisk(): void {
   let source = FILE;
   if (!fs.existsSync(FILE)) {
-    if (fs.existsSync(LEGACY_FILE)) source = LEGACY_FILE;
+    const legacy = LEGACY_FILES.find((f) => fs.existsSync(f));
+    if (legacy) source = legacy;
     else return;
   }
 
@@ -126,8 +128,8 @@ export function hydrateFromDisk(): void {
 
   apply(parsed);
   lastContent = source === FILE ? raw : ''; // migrating from legacy → force a fresh write below
-  if (source === LEGACY_FILE) {
-    log.info('migrated state from legacy .control-state.json → routing-plan.json');
+  if (source !== FILE) {
+    log.info('migrated state from a legacy file → orchestration-config.json', { from: path.basename(source) });
     persistSnapshot();
   }
 
@@ -139,7 +141,7 @@ export function hydrateFromDisk(): void {
   });
 }
 
-// Watch routing-plan.json for HAND edits and reload them into the running server,
+// Watch orchestration-config.json for HAND edits and reload them into the running server,
 // so editing the file by hand is a first-class way to drive the control plane.
 // We watch the directory (survives editors that save via rename) and debounce.
 // Our own writes are ignored by comparing against lastContent.
@@ -161,7 +163,7 @@ export function watchPlanFile(): void {
         try {
           parsed = JSON.parse(raw);
         } catch {
-          log.warn('hand-edited routing-plan.json is not valid JSON — ignoring until fixed');
+          log.warn('hand-edited orchestration-config.json is not valid JSON — ignoring until fixed');
           return;
         }
         apply(parsed);
@@ -171,8 +173,8 @@ export function watchPlanFile(): void {
         });
       }, 150);
     });
-    log.debug('watching routing-plan.json for hand edits', { file: FILE_NAME });
+    log.debug('watching orchestration-config.json for hand edits', { file: FILE_NAME });
   } catch (e) {
-    log.warn('could not watch routing-plan.json (hand-edit reload disabled)', { error: e instanceof Error ? e.message : String(e) });
+    log.warn('could not watch orchestration-config.json (hand-edit reload disabled)', { error: e instanceof Error ? e.message : String(e) });
   }
 }

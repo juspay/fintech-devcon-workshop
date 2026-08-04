@@ -44,7 +44,7 @@ setPrismTraceSink((e) => {
 });
 
 // Restore the routing plan + enabled processors from disk (if present) before serving,
-// then watch web/routing-plan.json so hand edits to it reload into the running UI.
+// then watch web/orchestration-config.json so hand edits to it reload into the running UI.
 hydrateFromDisk();
 watchPlanFile();
 
