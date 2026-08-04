@@ -113,7 +113,11 @@ export async function authorize(
         amount: { minorAmount: order.minorAmount, currency: toSdkCurrency(order.currency) },
         paymentMethod: { card: toSdkCard(order.card) },
         captureMethod: opts.captureMethod ?? types.CaptureMethod.AUTOMATIC,
-        address: { billingAddress: {} },
+        address: {
+          billingAddress: {
+            countryAlpha2Code: order.currency === 'EUR' ?  types.CountryAlpha2.NL : types.CountryAlpha2.US,
+          }
+        },
         authType: types.AuthenticationType.NO_THREE_DS,
         returnUrl: 'https://example.com/return',
         // Some processors require these. Including them here keeps the unified
@@ -171,7 +175,11 @@ export async function tokenAuthorize(
       connectorToken: { value: connectorToken },
       captureMethod: types.CaptureMethod.AUTOMATIC,
       returnUrl: 'https://example.com/return',
-      address: {},
+      address: {
+          billingAddress: {
+            countryAlpha2Code: order.currency === 'EUR' ?  types.CountryAlpha2.NL : types.CountryAlpha2.US,
+          }
+      },
     };
     if (opts.serverAccessToken) {
       request.state = {
