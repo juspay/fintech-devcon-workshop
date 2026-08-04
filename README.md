@@ -105,6 +105,20 @@ request, and you'll see a connector error instead of a charge. Add sandbox keys
 to `javascript/.env` (copy from `.env.example`) to see real approvals. The test
 suite needs **no** credentials.
 
+## Live workshop resources
+
+Attending the facilitated **devcon** session? Two things to grab:
+
+- **Sandbox credentials** — download [`creds.env`](https://sandbox.assets.juspay.in/test/devcon/creds.env)
+  and save it as `javascript/.env` (it drops in place of the `.env` you'd copy from
+  `.env.example`) to get real sandbox approvals for every processor.
+- **Collaboration channel** — join the temporary **Zulip** channel to ask questions and
+  share as you go:
+  [potentially-invisible-gigs.zulipchat.com](https://potentially-invisible-gigs.zulipchat.com/join/477ekeq2niffdt4rfqco6z2a/)
+
+> These are provided for the live session and are **temporary** — the sandbox keys and the
+> Zulip invite may be rotated or expire afterwards.
+
 ---
 
 *The hyperswitch-prism SDK is published on npm as
