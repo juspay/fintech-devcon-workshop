@@ -14,7 +14,7 @@
 //   from this registry. `cybersource` is a worked example (already added), and
 //   `globalpay` is the hands-on exercise: it ships COMMENTED OUT at the bottom of
 //   PSP_REGISTRY — un-comment that one entry and GlobalPay appears everywhere
-//   (the /control processor list, the store, routing, and retry). See STEPS.md.
+//   (the /control processor list, the store, routing, and retry). See CLI-WALKTHROUGH.md.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { types } from 'hyperswitch-prism';

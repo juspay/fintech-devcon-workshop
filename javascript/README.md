@@ -1,44 +1,13 @@
-# hyperswitch-prism workshop — JavaScript / TypeScript
+# hyperswitch-prism workshop — code & architecture reference (JS/TS)
 
-A self-contained, runnable workshop that teaches the **hyperswitch-prism**
-unified payment library through nine short steps: run a payment with one PSP,
-switch processors with a one-line change, build a payment orchestrator
-(condition-based routing + retry), extend the library with a new flow/processor,
-run a test suite, and drive it all from a browser — an e-commerce store and a
-routing control plane.
+**How the JavaScript/TypeScript implementation is built** — the layering, the file map,
+and how a payment travels through the code. This is a reference, not a walkthrough:
 
-> 📖 **Follow the guided walkthrough in [STEPS.md](./STEPS.md)** — it maps every
-> command below to a workshop step.
-
-## Quick start (from scratch)
-
-```bash
-# 1. Clone the workshop repo
-git clone https://github.com/juspay/fintech-devcon-workshop.git
-cd fintech-devcon-workshop
-
-# 2. Install
-cd javascript
-npm install
-cp .env.example .env        # optional — add sandbox keys to see real approvals
-
-# 3. Run the workshop
-npm test                    # Step 8: the test suite (no credentials needed) — start here to verify setup
-npm run run:payment         # Steps 1–4: run a payment (switch PSP in config/active-psp.ts)
-npm run run:routing         # Step 6a: condition-based routing
-npm run run:retry           # Step 6b: payment retry / fallback
-npm run run:extend          # Step 7: add a new processor / new flow
-npm run web                 # Step 9: browser store + control plane (http://localhost:3000)
-```
-
-Then open **http://localhost:3000/store** (storefront + checkout) and
-**http://localhost:3000/control** (routing control plane). See
-[`web/README.md`](./web/README.md) for the full walkthrough.
-
-Requirements: Git, **Node.js 18, 20, or 22 LTS (not 23+)**, and Linux x64 / macOS /
-WSL2 (the SDK ships a native x86_64 library — no Rust toolchain needed). Node 23+
-bundles undici 7, which breaks the SDK's `undici@6` HTTP dispatcher and makes every
-connector call fail with "Network Error: fetch failed" (`.nvmrc` pins Node 22).
+- **New here?** Start with the **[root README](../README.md)** — it has the workshop
+  sequence, one-time setup, and requirements (Node 18/20/22 — **not** 23+).
+- **Prefer the terminal?** The **[CLI walkthrough](./CLI-WALKTHROUGH.md)** drives the same
+  concepts from the command line.
+- **The browser app internals** are in **[web/README.md](./web/README.md)**.
 
 ## How it works
 
@@ -63,14 +32,14 @@ for Adyen is a one-line config change; adding a processor is one registry entry.
 
 ## Codebase map
 
-Every file, and the workshop step it belongs to. The CLI steps (1–8) live in
-`config/`, `src/`, and `test/`; the browser experience (step 9) lives in `web/`.
+Every file, by what it does. The library, orchestrator, and tests live in `config/`,
+`src/`, and `test/`; the browser experience lives in `web/`.
 
 ```
 javascript/
 ├── config/
-│   ├── active-psp.ts          Step 3: the one-line PSP switch (which processor is "active")
-│   └── psp-registry.ts        Every PSP + its credentials, read lazily from process.env
+│   ├── active-psp.ts          the one-line PSP switch (which processor is "active")
+│   └── psp-registry.ts        every PSP + its credentials, read lazily from process.env
 │
 ├── src/
 │   ├── library/               ── the unified library ──
@@ -79,17 +48,17 @@ javascript/
 │   │   ├── cards.ts              sample test cards (approved/declined) + the Order type
 │   │   └── format.ts            console pretty-printing helpers
 │   ├── orchestrator/          ── pure, processor-free ──
-│   │   ├── routing.ts           selectPsp(): condition-based routing (Step 6a)
-│   │   └── retry.ts             withRetry(): fall back across PSPs on decline (Step 6b)
-│   └── steps/                 ── the demos you run (npm run run:*) ──
-│       ├── step1-run-payment.ts run a payment through one PSP        (Steps 1–4)
-│       ├── step2-routing.ts     routing in action                   (Step 6a)
-│       ├── step3-retry.ts       retry / fallback in action          (Step 6b)
-│       └── step4-extend.ts      add a new processor / flow          (Step 7)
+│   │   ├── routing.ts           selectPsp(): condition-based routing
+│   │   └── retry.ts             withRetry(): fall back across PSPs on decline
+│   └── steps/                 ── the CLI demos you run (npm run run:*) ──
+│       ├── step1-run-payment.ts run a payment through one PSP
+│       ├── step2-routing.ts     routing in action
+│       ├── step3-retry.ts       retry / fallback in action
+│       └── step4-extend.ts      add a new processor / flow
 │
-├── test/                      Step 8: routing / retry / unified-payments tests (no keys)
+├── test/                      routing / retry / unified-payments tests (no keys)
 │
-└── web/                       Step 9: browser store + control plane (one Express process)
+└── web/                       browser store + control plane (one Express process)
     ├── server/
     │   ├── index.ts             Express app: serves /store, /control, mounts /api/*
     │   ├── routing-store.ts     declarative rule model → compiles into selectPsp()
@@ -153,36 +122,15 @@ resolves earlier — at **session** time — because the browser must load the c
 connector's SDK before tokenizing, and the resulting token is pinned to that connector
 (so no cross-PSP retry). Same unified library at the end of both.
 
-## Two ways to drive it — by hand, and in the browser
+## Two tracks, one core
 
-The web experience does **not** replace the CLI. They're two tracks over the same core,
-and the workshop uses both:
-
-- **By hand (the CLI, steps 1–8)** — you *edit code and files yourself*: flip
-  `config/active-psp.ts` (step 3), add a registry entry (step 7), tweak
-  `DEFAULT_ROUTING_PLAN` and run the tests. This is where the "app code never names a
-  processor" lesson is felt in your fingers.
-- **Live (the browser, step 9)** — you *watch* routing happen in a real checkout and
-  manipulate it declaratively in `/control`.
-
-The two connect through one tracked file. **Every change you make in `/control` is
-written to [`web/orchestration-config.json`](./web/orchestration-config.json)** — a normal, git-tracked
-file in your working tree. So after any UI action you can inspect the result by hand:
-
-```bash
-git diff web/orchestration-config.json      # see exactly what your click changed
-cat web/orchestration-config.json           # the declarative rule model behind the UI
-```
-
-It's **two-way**: edit `web/orchestration-config.json` by hand and the running server reloads it
-into the UI (the control page shows it on its next load). Point-and-click and
-hand-editing are the same surface, so participants always have a tangible artifact to
-touch — and `git checkout web/orchestration-config.json` resets the plan to the workshop default.
-
-**The workshop ships empty** — no rules, no fallback, no enabled processors — so the
-first thing you do in `/control` is layer the orchestrator in one piece at a time (add a
-processor, add a rule, set a fallback). That empty file *is* the default `git checkout`
-returns you to.
+The [**CLI walkthrough**](./CLI-WALKTHROUGH.md) and the **browser app** drive the *same*
+code — editing files / running scripts vs. clicking in `/control`. They meet at one
+tracked file, [`web/orchestration-config.json`](./web/orchestration-config.json): every
+control-plane change writes it, so it's `git diff`-able and hand-editable (the server
+reloads hand edits). The workshop ships it **empty** — no rules, no fallback, no enabled
+processors — and you layer the orchestrator in one piece at a time. The follow-along
+sequence and per-step diffs are in the [root README](../README.md).
 
 ## The PSPs in this workshop
 
@@ -193,14 +141,7 @@ returns you to.
 | `cybersource` | Cybersource | PSP-3 (a worked "add a processor" example) | `CYBERSOURCE_API_KEY`, `CYBERSOURCE_MERCHANT_ACCOUNT`, `CYBERSOURCE_API_SECRET` |
 | `globalpay` | GlobalPay | PSP-4 — **ships commented out**; the Step 7 exercise is to un-comment its one entry in `config/psp-registry.ts` | `GLOBALPAY_APP_ID`, `GLOBALPAY_APP_KEY` |
 
-No credentials? Everything still runs — you'll see the request get built and sent
-and a connector error come back instead of a charge. The test suite needs no keys.
-The web store's processor-specific (PCI) checkout additionally needs browser keys —
-`STRIPE_PUBLISHABLE_KEY`, `ADYEN_CLIENT_KEY` — see [`web/README.md`](./web/README.md).
-
-## Requirements
-
-- **Node.js 18, 20, or 22 LTS** — not 23+ (newer Node bundles undici 7, which breaks
-  the SDK's `undici@6` HTTP dispatcher; `.nvmrc` pins Node 22)
-- Linux x64, macOS, or Windows via WSL2 (the SDK ships a native x86_64 library)
-- No build step — scripts run TypeScript directly via `tsx`
+Credentials are optional (see [*No credentials? Still works*](../README.md#no-credentials-still-works)
+in the root README). PSP-specific detail: raw-card mode needs no keys; the store's
+processor-specific (PCI) checkout additionally needs **browser** keys
+(`STRIPE_PUBLISHABLE_KEY`, `ADYEN_CLIENT_KEY`) — see [`web/README.md`](./web/README.md).
