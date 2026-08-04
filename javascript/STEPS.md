@@ -165,11 +165,12 @@ robust and testable.
 npm run run:extend
 ```
 
-**(A) Add a new processor** — we added `cybersource` as PSP-3. Adding a
-processor is a single entry in **`config/psp-registry.ts`**; routing, retry, and
-all demos pick it up automatically. **Try it:** add a 4th processor from the SDK
-(e.g. `bluesnap`, `nuvei`, `globalpay`) by copying an existing registry entry and
-adjusting its auth fields.
+**(A) Add a new processor** — `cybersource` (PSP-3) is a worked example already in
+**`config/psp-registry.ts`**. **GlobalPay** is the hands-on exercise: it ships
+**commented out** at the bottom of `PSP_REGISTRY`. Un-comment that one entry — routing,
+retry, the store, and the `/control` processor list pick it up automatically (add it +
+its `GLOBALPAY_APP_ID`/`GLOBALPAY_APP_KEY` there). Adding *any* processor is the same
+single-entry change; try another from the SDK (e.g. `bluesnap`, `nuvei`) the same way.
 
 **(B) Add a new flow** — we added `voidPayment()` to
 **`src/library/unified-payments.ts`** and exercised a new composite flow:

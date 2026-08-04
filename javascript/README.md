@@ -190,8 +190,8 @@ returns you to.
 |-----|-----------|------|----------|
 | `stripe` | Stripe | PSP-1 | `STRIPE_API_KEY` |
 | `adyen` | Adyen | PSP-2 | `ADYEN_API_KEY`, `ADYEN_MERCHANT_ACCOUNT` |
-| `cybersource` | Cybersource | PSP-3 (added in Step 7) | `CYBERSOURCE_API_KEY`, `CYBERSOURCE_MERCHANT_ACCOUNT`, `CYBERSOURCE_API_SECRET` |
-| `globalpay` | GlobalPay | PSP-4 (added for the web experience) | `GLOBALPAY_APP_ID`, `GLOBALPAY_APP_KEY` |
+| `cybersource` | Cybersource | PSP-3 (a worked "add a processor" example) | `CYBERSOURCE_API_KEY`, `CYBERSOURCE_MERCHANT_ACCOUNT`, `CYBERSOURCE_API_SECRET` |
+| `globalpay` | GlobalPay | PSP-4 — **ships commented out**; the Step 7 exercise is to un-comment its one entry in `config/psp-registry.ts` | `GLOBALPAY_APP_ID`, `GLOBALPAY_APP_KEY` |
 
 No credentials? Everything still runs — you'll see the request get built and sent
 and a connector error come back instead of a charge. The test suite needs no keys.
