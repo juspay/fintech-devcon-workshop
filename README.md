@@ -1,10 +1,12 @@
-# fintech-devcon workshop — hyperswitch-prism
+# fintech-devcon workshop — Building a Multi-processor Payment Orchestrator
 
-A hands-on workshop for the **hyperswitch-prism** unified payment library. You'll
-accept a payment through one processor, add more, route between them, go
-processor-agnostic, retry across processors on failure, and finally extend the library
-with a new processor and a new flow — **following along in a browser** (an e-commerce
-store + an orchestration control plane) and inspecting exactly what changes at each step.
+A hands-on workshop for building a multi-processor payment orchestrator.  You'll
+accept a payment through one processor, add more, route between them, go processor-agnostic,
+retry across processors on failure, following along in a browser (an e-commerce
+store + an orchestration control plane) and inspecting exactly what changes at
+each step. We will also understand how bullet-proof processor and payment flow
+integrations are done.  The workshop leverages the hyperswitch-prism unified payment
+library to power the processor integrations.
 
 ## Workshop sequence
 
