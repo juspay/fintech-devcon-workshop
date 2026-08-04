@@ -8,7 +8,7 @@
 
 import { Router } from 'express';
 
-import { PSP_REGISTRY, listPsps, type PspName } from '../../../config/psp-registry.js';
+import { getPsp, listPsps, type PspName } from '../../../config/psp-registry.js';
 import { isTokenizable } from '../sessions.js';
 import { setProcessorCredentials, credentialStatus } from '../credentials.js';
 import { isActive, setActive } from '../active-psps.js';
@@ -21,7 +21,7 @@ const log = createLogger('control');
 const KNOWN = new Set<PspName>(listPsps());
 
 function describe(name: PspName) {
-  const entry = PSP_REGISTRY[name];
+  const entry = getPsp(name);
   return {
     name,
     displayName: entry.displayName,
@@ -61,7 +61,7 @@ router.put('/:name/credentials', (req, res) => {
 
   setProcessorCredentials(name, values);
   // Log only which keys changed — NEVER the secret values.
-  log.info('credentials updated', { reqId: req.reqId, psp: name, keys: Object.keys(values), configured: PSP_REGISTRY[name].isConfigured() });
+  log.info('credentials updated', { reqId: req.reqId, psp: name, keys: Object.keys(values), configured: getPsp(name).isConfigured() });
   res.json(describe(name));
 });
 
@@ -82,7 +82,7 @@ router.post('/:name/disable', (req, res) => {
   if (refs.length > 0) {
     log.warn('processor disable blocked', { reqId: req.reqId, psp: name, usedBy: refs.join(', ') });
     return res.status(409).json({
-      error: `${PSP_REGISTRY[name].displayName} is used by ${refs.join(' and ')} in the routing plan. ` +
+      error: `${getPsp(name).displayName} is used by ${refs.join(' and ')} in the routing plan. ` +
         `Update the plan first, then remove it.`,
     });
   }

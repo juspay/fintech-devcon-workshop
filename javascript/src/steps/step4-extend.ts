@@ -7,8 +7,8 @@
 //   (A) ADD A NEW PROCESSOR
 //       We added 'cybersource' (Cybersource) to config/psp-registry.ts. That ONE
 //       registry entry made it usable everywhere — routing, retry, and the demos
-//       below — with no other code changes. (The web experience later added
-//       'globalpay' the exact same way — try adding another processor yourself!)
+//       below — with no other code changes. ('globalpay' ships COMMENTED OUT in the
+//       registry as the hands-on version of this exercise — un-comment its one entry.)
 //
 //   (B) ADD A NEW FLOW
 //       We added voidPayment() to src/library/unified-payments.ts. Below we exercise

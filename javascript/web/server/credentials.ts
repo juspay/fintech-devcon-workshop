@@ -10,7 +10,7 @@
 // Secrets are NEVER returned to the client — only a per-key "is it set?" boolean.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { PSP_REGISTRY, type PspName } from '../../config/psp-registry.js';
+import { getPsp, type PspName } from '../../config/psp-registry.js';
 
 // Matches the registry's own notion of "configured": present and not a placeholder.
 function isRealValue(v: string | undefined): boolean {
@@ -21,7 +21,7 @@ function isRealValue(v: string | undefined): boolean {
 // Apply credential values for a processor. Only keys that belong to that processor
 // are accepted; an empty value clears the key.
 export function setProcessorCredentials(name: PspName, values: Record<string, unknown>): void {
-  const allowed = new Set(PSP_REGISTRY[name].envKeys);
+  const allowed = new Set(getPsp(name).envKeys);
   for (const [key, raw] of Object.entries(values)) {
     if (!allowed.has(key)) continue;
     const value = String(raw ?? '').trim();
@@ -32,5 +32,5 @@ export function setProcessorCredentials(name: PspName, values: Record<string, un
 
 // Per-key status for a processor — the value itself is never exposed.
 export function credentialStatus(name: PspName): Array<{ key: string; set: boolean }> {
-  return PSP_REGISTRY[name].envKeys.map((key) => ({ key, set: isRealValue(process.env[key]) }));
+  return getPsp(name).envKeys.map((key) => ({ key, set: isRealValue(process.env[key]) }));
 }

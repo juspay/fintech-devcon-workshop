@@ -159,11 +159,13 @@ saves log only the **key names**, never the values.
 
 ## Connectors
 
-The registry (`config/psp-registry.ts`) has **Stripe, Adyen, Cybersource, GlobalPay**.
-GlobalPay was added the same one-entry way as Cybersource in step 7, so the demo store's
-Stripe/Adyen/GlobalPay browser tokenization is reused verbatim. **Cybersource has no
-browser (PCI) integration here** — it works in raw-card mode only; selecting it in PCI
-mode surfaces a clear message.
+The registry (`config/psp-registry.ts`) has **Stripe, Adyen, Cybersource** enabled, plus
+**GlobalPay** shipped **commented out** as the Step 7 "add a processor" exercise —
+un-comment its one registry entry and it joins the others (see the base
+[README](../../README.md) step 7). Its browser tokenization (reused verbatim from the
+demo store) then works the same as Stripe/Adyen. **Cybersource has no browser (PCI)
+integration here** — it works in raw-card mode only; selecting it in PCI mode surfaces a
+clear message.
 
 ## Credentials
 
