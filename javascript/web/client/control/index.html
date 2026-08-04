@@ -93,6 +93,35 @@
         </div>
         <div class="simulate-result hidden" id="sim-result"></div>
       </section>
+
+      <!-- Refund a payment through the unified library -->
+      <section class="panel">
+        <h2>Refund a payment</h2>
+        <p class="panel-hint">Refund a payment through the <strong>hyperswitch-prism</strong> library — the same flow as authorize/capture. Make a payment in the <a href="/store">store</a>, copy its <span class="mono">transaction id</span> from the result panel, then refund it here via the processor that handled it. <em>The refund flow ships <strong>disabled</strong> — enable it during the workshop by editing <span class="mono">src/library/unified-payments.ts</span>; until then this reports “not enabled yet”.</em></p>
+        <div class="refund-fields">
+          <label class="refund-field">Processor
+            <select id="refund-psp"></select>
+          </label>
+          <label class="refund-field refund-field-wide">Transaction id
+            <input type="text" id="refund-txn" placeholder="from the store payment result" autocomplete="off" spellcheck="false">
+          </label>
+          <label class="refund-field">Amount
+            <input type="number" id="refund-amount" value="20.00" step="0.01" min="0">
+          </label>
+          <label class="refund-field">Currency
+            <select id="refund-currency">
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+          </label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="refund-btn">Process refund →</button>
+          <span class="save-status" id="refund-status"></span>
+        </div>
+        <div class="simulate-result hidden" id="refund-result"></div>
+      </section>
     </div>
   </main>
 

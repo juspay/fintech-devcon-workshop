@@ -276,6 +276,36 @@ export async function voidPayment(
   }
 }
 
+// ★★★ WORKSHOP — "ENABLE A NEW FLOW": REFUND ★★★
+// The refund flow is intentionally DISABLED so we can turn it on live during the
+// workshop. Right now this stub just reports "not enabled" (as a normal
+// UnifiedResult, so nothing crashes — the CLI step and the /control Refund section
+// both show the message). The REAL implementation is in the commented block below.
+//
+// To enable it during the workshop:
+//   1. Delete this stub refund() function.
+//   2. Un-comment the real refund() in the block beneath it.
+// Then process a payment in /store and refund it from the Refund panel in /control —
+// the refund goes through the same hyperswitch-prism library as every other flow.
+export async function refund(
+  psp: PspName,
+  _order: Order,
+  _connectorTransactionId: string,
+  _refundMinorAmount?: number,
+): Promise<UnifiedResult> {
+  return {
+    ok: false,
+    psp,
+    operation: 'refund',
+    status: -1,
+    statusText: 'NOT_ENABLED',
+    error:
+      'Refund flow is not enabled yet. Enable it during the workshop: in ' +
+      'src/library/unified-payments.ts, delete the stub refund() and un-comment the real one below.',
+  };
+}
+
+/* ★ WORKSHOP — un-comment to enable the real refund flow ★
 export async function refund(
   psp: PspName,
   order: Order,
@@ -311,3 +341,4 @@ export async function refund(
     return errorToResult(psp, 'refund', e);
   }
 }
+*/

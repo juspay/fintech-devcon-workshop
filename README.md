@@ -1,59 +1,74 @@
-# fintech-devcon workshop — hyperswitch-prism
+# fintech-devcon workshop — Building a Multi-processor Payment Orchestrator
 
-A hands-on workshop for the **hyperswitch-prism** unified payment library. Run a
-payment through one payment service provider (PSP), switch processors with a
-one-line change, build a small payment orchestrator (routing + retry), extend
-the library, and run a test suite — all from working, runnable code.
+A hands-on workshop for building a multi-processor payment orchestrator.  You'll
+accept a payment through one processor, add more, route between them, go processor-agnostic,
+retry across processors on failure, following along in a browser (an e-commerce
+store + an orchestration control plane) and inspecting exactly what changes at
+each step. We will also understand how bullet-proof processor and payment flow
+integrations are done.  The workshop leverages the hyperswitch-prism unified payment
+library to power the processor integrations.
 
-## Agenda → where it lives
+## Workshop sequence
 
-| # | Workshop step | Covered by |
-|---|---------------|-----------|
-| 1 | Execute the app to see the library in action with **PSP-1** | `npm run run:payment` |
-| 2 | View the payment experience with **PSP-1** | console output of the same command |
-| 3 | Make a **minimal code change** to switch PSP-1 → PSP-2 | edit one line in `config/active-psp.ts` |
-| 4 | Re-execute to see the library with **PSP-2** | `npm run run:payment` again |
-| 5 | Repeat in 2–3 languages (participant preference) | see **Languages** below |
-| 6 | Build a payment orchestrator: **(a) condition-based routing, (b) payment retry** | `npm run run:routing`, `npm run run:retry` |
-| 7 | Extend the library: **new flow or new processor** | `npm run run:extend` |
-| 8 | Execute the **test suite** to ensure the change is robust | `npm test` |
-| 9 | See it in a browser: **e-commerce store + routing control plane** | `npm run web` |
+Follow along in the **web experience** (`npm run web` → **[localhost:3000/store](http://localhost:3000/store)**
+and **[/control](http://localhost:3000/control)**). The workshop starts from a **clean
+slate** — no processors, no rules, no fallback — and you layer everything in. Each change
+you make in the control plane is written to a single git-tracked file,
+**`javascript/web/orchestration-config.json`**, so after every step you can run
+`git diff` and see precisely what changed.
+
+| # | Step | ~Time | What you do (in the browser) | `git diff .../orchestration-config.json` |
+|---|------|-------|------------------------------|------------------------------------------|
+| 1 | **Prerequisites & overview** | 10m | `npm install`, `npm test`, `npm run web`; open `/store` + `/control`. The config starts empty. | *(nothing yet — the clean slate)* |
+| 2 | **Accept payments with one processor** *(processor-specific tokenization)* | 5m | Add **one** processor (Stripe) in `/control`; pay in `/store` with **Processor-specific tokenization**. | `enabled: []` → `["stripe"]` |
+| 3 | **Accept payments with multiple processors** *(processor-specific tokenization)* | 5m | Add **Adyen** and **GlobalPay**; check out selecting each. | `enabled` grows to add `adyen`, `globalpay` |
+| 4 | **Routing between processors** *(+ the limits of processor tokenization)* | 10m | Add amount/currency **rules** + a **fallback**; use `/store` **Automatic**. Note: a processor-specific token is **pinned to the connector chosen at session time**, so it can't retry on another processor. | `rules: [ … ]` added, `fallback` set |
+| 5 | **Processor-agnostic experience & enhanced routing** | 5m | Switch `/store` to **Processor-agnostic tokenization**. Now the server holds the card, so add a **card-number (BIN) rule** — routing on a *customer* attribute, not just the merchant's amount. | a `card … starts with` rule added |
+| 6 | **Retrying failed payments across processors** | 10m | Turn on **Retry / fallback** in `/control`; a declined primary now cascades to the next enabled processor (processor-agnostic only — see step 4). | `retryEnabled: false` → `true` |
+| 7 | **Extend to a new processor** *(walk-through)* | 15m | Add **one entry** to `config/psp-registry.ts`; routing, retry, and the store pick it up. | *(a **code** diff, not the config)* |
+| 8 | **Extend to a new flow — refund** *(walk-through)* | — | The refund flow ships **disabled**. Enable it in `src/library/unified-payments.ts` (delete the stub, un-comment `refund()`), then **refund a payment** from the new **Refund** panel in `/control` — through the same prism library. | *(a **code** diff, not the config)* |
+
+> **Tip for clean per-step diffs.** The file accumulates your changes, so `git diff`
+> shows everything since the start. To see *just* the current step, stage the file after
+> each step — `git add javascript/web/orchestration-config.json` — then the next
+> `git diff` shows only what that step changed. `git checkout javascript/web/orchestration-config.json`
+> resets to the empty clean slate at any time.
 
 ## Start here
-
-➡️ **[`javascript/`](./javascript/)** — the complete JS/TS workshop. Open
-[`javascript/STEPS.md`](./javascript/STEPS.md) for the guided, step-by-step
-walkthrough.
 
 ```bash
 # Clone
 git clone https://github.com/juspay/fintech-devcon-workshop.git
 cd fintech-devcon-workshop
 
-# Install and run
+# Install
 cd javascript
 npm install
 npm test                 # verify setup (no credentials needed)
-npm run run:payment      # run your first payment
-npm run web              # then open http://localhost:3000/store and /control
+
+# Run the web experience, then follow the sequence above
+npm run web              # open http://localhost:3000/store and /control
 ```
 
-The **web experience** (step 9) puts the same unified library and orchestrator behind
-an e-commerce storefront (`/store`) and a routing **control plane** (`/control`). The
-store checkout lets you pick a specific processor or let the system route by condition,
-and toggle a PCI (browser-tokenized) vs non-PCI (raw-card) flow — both finish through
-the unified library. See [`javascript/web/README.md`](./javascript/web/README.md).
+The **web experience** puts the same unified library and orchestrator behind an
+e-commerce storefront (`/store`) and an orchestration **control plane** (`/control`).
+The store checkout lets you pick a specific processor or let the system route by
+condition, and toggle **processor-specific** (browser-tokenized, PCI) vs
+**processor-agnostic** (raw-card) tokenization — both finish through the unified library.
+See [`javascript/web/README.md`](./javascript/web/README.md).
 
-The browser **doesn't replace** the hands-on CLI steps — it complements them. Every
-change you make in `/control` is written to a git-tracked `javascript/web/routing-plan.json`,
-so after each click you can `git diff` it (or hand-edit it and watch the UI reload) — the
-by-hand and point-and-click tracks stay connected through one file you can touch.
+Under the hood, every control-plane action is the same core the CLI steps use, made
+editable. The commands behind the scenes (`npm run run:payment | run:routing | run:retry
+| run:extend`) and the code-level walkthrough live in
+[`javascript/STEPS.md`](./javascript/STEPS.md) and
+[`javascript/README.md`](./javascript/README.md).
 
-## Languages (step 5)
+## Other languages
 
 This repo implements the workshop end-to-end in **JavaScript/TypeScript** under
 [`javascript/`](./javascript/). Additional language tracks (`python/`,
-`kotlin/`) can be added as sibling folders.
+`kotlin/`) can be added as sibling folders. A natural extension is to repeat the
+sequence above in another language.
 
 For the "repeat in another language" portion, the
 [**juspay/hyperswitch-prism**](https://github.com/juspay/hyperswitch-prism)

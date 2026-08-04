@@ -3,6 +3,8 @@ node_modules/
 *.log
 dist/
 
-# The control plane's state now lives in a TRACKED file (web/routing-plan.json) so
-# attendees can see/diff/hand-edit it. Still ignore the pre-web-9 hidden dotfile.
+# The control plane's state lives in a TRACKED file (web/orchestration-config.json)
+# so attendees can see/diff/hand-edit it. Ignore the older interim names, which are
+# now just leftover runtime files.
 .control-state.json
+routing-plan.json

@@ -12,7 +12,7 @@
 // State is in-memory and shared across the store and control routes (same Express
 // process). The workshop starts from a CLEAN SLATE — no rules and no fallback — so
 // participants build the plan up one rule at a time in /control. Boot restores
-// whatever routing-plan.json holds (see control-state.ts). It resets on restart.
+// whatever orchestration-config.json holds (see control-state.ts). It resets on restart.
 // (The CLI's DEFAULT_ROUTING_PLAN in orchestrator/routing.ts is separate and still
 // carries the step-6a demo rules.)
 // ─────────────────────────────────────────────────────────────────────────────

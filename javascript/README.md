@@ -97,12 +97,12 @@ javascript/
     │   ├── active-psps.ts       which processors are enabled (add/remove live)
     │   ├── credentials.ts       set a processor's keys at runtime (into process.env)
     │   ├── sessions.ts          PCI session bootstrap for Stripe/Adyen/GlobalPay
-    │   ├── control-state.ts     read/write + watch routing-plan.json (no secrets)
+    │   ├── control-state.ts     read/write + watch orchestration-config.json (no secrets)
     │   ├── logger.ts            structured, request-correlated server logs
     │   ├── fetch-diagnostics.ts surfaces the Node-23 undici error before the SDK swallows it
     │   ├── products.ts          the store catalog
-    │   └── routes/              store.ts · routing.ts · psps.ts  (the /api handlers)
-    ├── routing-plan.json       TRACKED control-plane state — every /control edit writes it;
+    │   └── routes/              store.ts · routing.ts · psps.ts · refund.ts  (the /api handlers)
+    ├── orchestration-config.json       TRACKED control-plane state — every /control edit writes it;
     │                           hand-edit it and the running UI reloads it (see below)
     └── client/
         ├── shared/styles.css
@@ -166,18 +166,18 @@ and the workshop uses both:
   manipulate it declaratively in `/control`.
 
 The two connect through one tracked file. **Every change you make in `/control` is
-written to [`web/routing-plan.json`](./web/routing-plan.json)** — a normal, git-tracked
+written to [`web/orchestration-config.json`](./web/orchestration-config.json)** — a normal, git-tracked
 file in your working tree. So after any UI action you can inspect the result by hand:
 
 ```bash
-git diff web/routing-plan.json      # see exactly what your click changed
-cat web/routing-plan.json           # the declarative rule model behind the UI
+git diff web/orchestration-config.json      # see exactly what your click changed
+cat web/orchestration-config.json           # the declarative rule model behind the UI
 ```
 
-It's **two-way**: edit `web/routing-plan.json` by hand and the running server reloads it
+It's **two-way**: edit `web/orchestration-config.json` by hand and the running server reloads it
 into the UI (the control page shows it on its next load). Point-and-click and
 hand-editing are the same surface, so participants always have a tangible artifact to
-touch — and `git checkout web/routing-plan.json` resets the plan to the workshop default.
+touch — and `git checkout web/orchestration-config.json` resets the plan to the workshop default.
 
 **The workshop ships empty** — no rules, no fallback, no enabled processors — so the
 first thing you do in `/control` is layer the orchestrator in one piece at a time (add a

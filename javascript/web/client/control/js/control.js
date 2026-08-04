@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderPspList();
   renderFallbackOptions();
   renderRules();
+  renderRefundProcessors();
   el('retry-toggle').checked = retryEnabled;
   wireEvents();
 });
@@ -68,6 +69,7 @@ function wireEvents() {
   el('save-btn').addEventListener('click', savePlan);
   el('revert-btn').addEventListener('click', revert);
   el('sim-btn').addEventListener('click', simulate);
+  el('refund-btn').addEventListener('click', processRefund);
   fallbackSelect.addEventListener('change', () => {
     fallback = fallbackSelect.value === 'none' ? null : fallbackSelect.value;
   });
@@ -186,6 +188,7 @@ async function toggleProcessor(name, enable) {
     renderPspList();
     renderFallbackOptions();
     renderRules();
+    renderRefundProcessors();
     setProcStatus(`${data.displayName} ${enable ? 'added' : 'removed'}.`, true);
   } catch (e) {
     setProcStatus(e.message, false);
@@ -395,6 +398,70 @@ async function simulate() {
 function setStatus(msg, ok) {
   saveStatus.textContent = msg;
   saveStatus.className = `save-status ${ok ? 'ok' : 'err'}`;
+}
+
+// ── Refund a payment through the unified library ──────────────────────────────
+// Refunds can only run through an ENABLED processor (the one that took the payment).
+function renderRefundProcessors() {
+  const select = el('refund-psp');
+  const enabled = psps.filter((p) => p.enabled);
+  const keep = select.value;
+  if (enabled.length === 0) {
+    select.innerHTML = '<option value="">No processors enabled — add one above</option>';
+    el('refund-btn').disabled = true;
+    return;
+  }
+  el('refund-btn').disabled = false;
+  select.innerHTML = enabled.map((p) =>
+    `<option value="${p.name}"${p.name === keep ? ' selected' : ''}>${p.displayName}</option>`).join('');
+}
+
+async function processRefund() {
+  const psp = el('refund-psp').value;
+  const connectorTransactionId = el('refund-txn').value.trim();
+  const minorAmount = Math.round(parseFloat(el('refund-amount').value || '0') * 100);
+  const currency = el('refund-currency').value;
+  const box = el('refund-result');
+
+  if (!connectorTransactionId) {
+    return setRefundStatus('Enter the transaction id from the store payment result.', false);
+  }
+  setRefundStatus('Processing…', true);
+  try {
+    const res = await fetch('/api/refund', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ psp, connectorTransactionId, minorAmount, currency }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Refund failed');
+
+    if (data.enabled === false) {
+      // The refund flow is still the disabled stub — a teaching moment, not an error.
+      box.innerHTML = `<strong>Refund flow not enabled yet.</strong><br>
+        <span class="mono" style="color:#64748b">${escapeHtml(data.error || '')}</span>`;
+      setRefundStatus('Enable refund() in unified-payments.ts, then try again.', false);
+    } else if (data.ok) {
+      box.innerHTML = `Refunded via <strong>${escapeHtml(data.displayName)}</strong> —
+        <span class="mono">${escapeHtml(data.statusText)}</span>`;
+      setRefundStatus('✓ Refund processed through hyperswitch-prism.', true);
+    } else {
+      box.innerHTML = `<strong>${escapeHtml(data.displayName)}</strong> did not complete the refund —
+        <span class="mono">${escapeHtml(data.statusText)}</span><br>
+        <span class="mono" style="color:#991b1b">${escapeHtml(data.error || '')}</span>`;
+      setRefundStatus('Refund not completed (see result).', false);
+    }
+    box.classList.remove('hidden');
+  } catch (e) {
+    box.innerHTML = `<span style="color:#991b1b">${escapeHtml(e.message)}</span>`;
+    box.classList.remove('hidden');
+    setRefundStatus('✕ ' + e.message, false);
+  }
+}
+
+function setRefundStatus(msg, ok) {
+  const s = el('refund-status');
+  if (s) { s.textContent = msg; s.className = `save-status ${ok ? 'ok' : 'err'}`; }
 }
 
 function escapeHtml(str) {

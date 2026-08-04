@@ -224,7 +224,7 @@ javascript/
 ├── test/                        ← Step 8: the test suite
 └── web/                         ← Step 9: the web experience (npm run web)
     ├── server/                  ← Express app: /store + /control + /api
-    ├── routing-plan.json        ← tracked control-plane state (every /control edit writes it)
+    ├── orchestration-config.json        ← tracked control-plane state (every /control edit writes it)
     └── client/                  ← storefront, checkout, control-plane UI
 ```
 
@@ -270,16 +270,16 @@ Then open two URLs:
 
 > **This step is still hands-on.** The CLI steps (1–8) are the *edit-code-by-hand* track;
 > step 9 is the *see-it-live* track — they don't replace each other. And they meet in one
-> file: **every `/control` change writes `web/routing-plan.json`**, a git-tracked file. So
+> file: **every `/control` change writes `web/orchestration-config.json`**, a git-tracked file. So
 > after each edit, inspect what happened by hand:
 >
 > ```bash
-> git diff web/routing-plan.json     # exactly what your click changed
-> cat web/routing-plan.json          # the declarative rule model behind the UI
+> git diff web/orchestration-config.json     # exactly what your click changed
+> cat web/orchestration-config.json          # the declarative rule model behind the UI
 > ```
 >
-> It's two-way: hand-edit `web/routing-plan.json` and the running server reloads it into
-> the UI. `git checkout web/routing-plan.json` resets the plan to the workshop default.
+> It's two-way: hand-edit `web/orchestration-config.json` and the running server reloads it into
+> the UI. `git checkout web/orchestration-config.json` resets the plan to the workshop default.
 
 > No credentials? Raw-card mode still runs end-to-end (you'll see a connector error
 > instead of a charge). The PCI path needs each connector's sandbox keys — see

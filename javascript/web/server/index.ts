@@ -23,6 +23,7 @@ import { setPrismTraceSink } from '../../src/library/prism-trace.js';
 import storeRoutes from './routes/store.js';
 import routingRoutes from './routes/routing.js';
 import pspRoutes from './routes/psps.js';
+import refundRoutes from './routes/refund.js';
 
 const log = createLogger('server');
 
@@ -44,7 +45,7 @@ setPrismTraceSink((e) => {
 });
 
 // Restore the routing plan + enabled processors from disk (if present) before serving,
-// then watch web/routing-plan.json so hand edits to it reload into the running UI.
+// then watch web/orchestration-config.json so hand edits to it reload into the running UI.
 hydrateFromDisk();
 watchPlanFile();
 
@@ -67,6 +68,7 @@ app.use(rateLimit({ windowMs: 60_000, max: 600, standardHeaders: true, legacyHea
 app.use('/api/store', storeRoutes);
 app.use('/api/routing', routingRoutes);
 app.use('/api/psps', pspRoutes);
+app.use('/api/refund', refundRoutes);
 
 // Clean page URLs (registered before static so the URL stays as-is)
 app.get('/', (_req, res) => res.redirect('/store'));
