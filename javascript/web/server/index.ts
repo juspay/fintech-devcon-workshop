@@ -16,7 +16,7 @@ import { rateLimit } from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { createLogger, requestLogger } from './logger.js';
+import { createLogger, requestLogger, currentReqId } from './logger.js';
 import { hydrateFromDisk, watchPlanFile } from './control-state.js';
 import { installFetchDiagnostics } from './fetch-diagnostics.js';
 import { setPrismTraceSink } from '../../src/library/prism-trace.js';
@@ -36,11 +36,14 @@ installFetchDiagnostics();
 // flow (see src/library/prism-trace.ts). Set PRISM_TRACE=off to silence it.
 const prismLog = createLogger('prism');
 setPrismTraceSink((e) => {
+  // reqId (via async context) both correlates the line to its request AND makes it
+  // indent under that request, like the store/routing/orchestrator lines.
+  const reqId = currentReqId();
   if (e.phase === 'invoke') {
-    prismLog.info(`→ ${e.client}.${e.method}()`, { psp: e.psp });
+    prismLog.info(`→ ${e.client}.${e.method}()`, { reqId, psp: e.psp });
   } else {
     prismLog[e.ok ? 'info' : 'warn'](`← ${e.client}.${e.method}()`,
-      { psp: e.psp, ms: e.ms, ...(e.ok ? {} : { error: e.error }) });
+      { reqId, psp: e.psp, ms: e.ms, ...(e.ok ? {} : { error: e.error }) });
   }
 });
 
