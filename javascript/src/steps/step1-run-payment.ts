@@ -53,12 +53,18 @@ async function main() {
   }
 
   // ── Refund the payment we just made ────────────────────────────────────────
+  // Note: the refund flow ships DISABLED (a workshop exercise — see the stub in
+  // src/library/unified-payments.ts). Until it's enabled, this reports NOT_ENABLED.
   step(`Refunding ${money(order.minorAmount, order.currency)} for ${auth.transactionId} ...`);
   const ref = await refund(ACTIVE_PSP, order, auth.transactionId);
   console.log(`    → refund status : ${ref.statusText} (${ref.status})`);
-  if (ref.error) console.log(`    → error         : ${ref.error}`);
+  if (ref.error) console.log(`    → note          : ${ref.error}`);
 
-  banner(`Done. PSP '${ACTIVE_PSP}' handled the full authorize → refund lifecycle.`);
+  if (ref.statusText === 'NOT_ENABLED') {
+    banner(`Authorize succeeded. Refund is not enabled yet — turn it on during the workshop.`);
+  } else {
+    banner(`Done. PSP '${ACTIVE_PSP}' handled the full authorize → refund lifecycle.`);
+  }
 }
 
 main().catch((e) => {

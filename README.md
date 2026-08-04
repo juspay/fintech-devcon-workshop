@@ -26,7 +26,7 @@ you make in the control plane is written to a single git-tracked file,
 | 5 | **Processor-agnostic experience & enhanced routing** | 5m | Switch `/store` to **Processor-agnostic tokenization**. Now the server holds the card, so add a **card-number (BIN) rule** — routing on a *customer* attribute, not just the merchant's amount. | a `card … starts with` rule added |
 | 6 | **Retrying failed payments across processors** | 10m | Turn on **Retry / fallback** in `/control`; a declined primary now cascades to the next enabled processor (processor-agnostic only — see step 4). | `retryEnabled: false` → `true` |
 | 7 | **Extend to a new processor** *(walk-through)* | 15m | Add **one entry** to `config/psp-registry.ts`; routing, retry, and the store pick it up. | *(a **code** diff, not the config)* |
-| 8 | **Extend to a new flow** *(walk-through)* | — | Add a flow (e.g. `voidPayment()`) to `src/library/unified-payments.ts`. | *(a **code** diff, not the config)* |
+| 8 | **Extend to a new flow — refund** *(walk-through)* | — | The refund flow ships **disabled**. Enable it in `src/library/unified-payments.ts` (delete the stub, un-comment `refund()`), then **refund a payment** from the new **Refund** panel in `/control` — through the same prism library. | *(a **code** diff, not the config)* |
 
 > **Tip for clean per-step diffs.** The file accumulates your changes, so `git diff`
 > shows everything since the start. To see *just* the current step, stage the file after

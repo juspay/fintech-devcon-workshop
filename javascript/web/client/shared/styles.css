@@ -1356,6 +1356,38 @@ main h2 {
   display: none;
 }
 
+/* Refund panel — labelled fields in a wrapping row */
+.refund-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.refund-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #475569;
+  font-weight: 600;
+  flex: 1 1 120px;
+}
+
+.refund-field-wide {
+  flex: 3 1 220px;
+}
+
+.refund-field input,
+.refund-field select {
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #0f172a;
+}
+
 .mono {
   font-family: 'Courier New', monospace;
 }

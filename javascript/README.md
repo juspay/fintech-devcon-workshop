@@ -101,7 +101,7 @@ javascript/
     │   ├── logger.ts            structured, request-correlated server logs
     │   ├── fetch-diagnostics.ts surfaces the Node-23 undici error before the SDK swallows it
     │   ├── products.ts          the store catalog
-    │   └── routes/              store.ts · routing.ts · psps.ts  (the /api handlers)
+    │   └── routes/              store.ts · routing.ts · psps.ts · refund.ts  (the /api handlers)
     ├── orchestration-config.json       TRACKED control-plane state — every /control edit writes it;
     │                           hand-edit it and the running UI reloads it (see below)
     └── client/

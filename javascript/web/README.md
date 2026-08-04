@@ -97,6 +97,27 @@ and the server reloads it into the running UI (shown on the control page's next 
 default. **Credentials are never written there** — secrets stay in `process.env` /
 `.env` only and reset on restart (edit `.env` to persist keys).
 
+## Refund a payment (enable a new flow, live)
+
+The **Refund** panel in `/control` refunds a payment through the unified library — the
+same `hyperswitch-prism` flow as authorize/capture. Make a payment in `/store`, copy the
+**transaction id** from the result panel, then in `/control` pick the processor that
+handled it, paste the id + amount, and **Process refund**.
+
+The refund flow **ships disabled on purpose** — it's the "enable a new flow" exercise.
+`src/library/unified-payments.ts` has a stub `refund()` that returns `NOT_ENABLED`, with
+the real implementation commented out just below it. Until you enable it, the Refund
+panel (and `npm run run:payment`) report *"Refund flow is not enabled yet."* To turn it
+on during the workshop:
+
+1. In `src/library/unified-payments.ts`, **delete the stub `refund()`** and
+   **un-comment the real one** beneath it.
+2. Save — the server restarts (`tsx watch`), and the Refund panel now processes refunds
+   through prism. Watch for the `🔷 prism … PaymentClient.refund()` callout in the logs.
+
+`POST /api/refund { psp, connectorTransactionId, minorAmount, currency }` backs the panel.
+A refund only runs through an **enabled** processor.
+
 ## Server logs (follow along in the terminal)
 
 The server emits **structured logs** so you can watch the orchestrator work. A raw
@@ -172,7 +193,7 @@ web/
 │   ├── logger.ts           structured, request-correlated logs
 │   ├── fetch-diagnostics.ts surfaces the Node-23 undici error before the SDK swallows it
 │   ├── products.ts         catalog
-│   └── routes/             store.ts, routing.ts, psps.ts
+│   └── routes/             store.ts, routing.ts, psps.ts, refund.ts
 ├── orchestration-config.json       tracked control-plane state (plan + enabled set); UI writes it, you can hand-edit it
 └── client/
     ├── shared/styles.css
