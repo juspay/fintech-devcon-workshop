@@ -1,4 +1,4 @@
-// STEP 8 — test suite: condition-based routing
+// STEP 6 — test suite: condition-based routing
 // Pure functions → no network, no credentials. Run with:  npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

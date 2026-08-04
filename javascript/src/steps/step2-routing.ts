@@ -1,4 +1,4 @@
-// WORKSHOP STEP 6a — Condition-based routing
+// WORKSHOP STEP 3 — Condition-based routing   (CLI-WALKTHROUGH.md)
 // ─────────────────────────────────────────────────────────────────────────────
 //   npm run run:routing
 //

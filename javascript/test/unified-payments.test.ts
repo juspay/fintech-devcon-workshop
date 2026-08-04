@@ -1,4 +1,4 @@
-// STEP 8 — test suite: unified result normalization
+// STEP 6 — test suite: unified result normalization
 // We test the PURE normalizer that maps raw SDK responses to UnifiedResult.
 // No PaymentClient is constructed, so there is no network call.
 import { test } from 'node:test';

@@ -1,4 +1,4 @@
-// STEP 8 — test suite: payment retry / fallback
+// STEP 6 — test suite: payment retry / fallback
 // We drive withRetry() with FAKE attempt functions so we can assert the
 // orchestration logic precisely, with zero network calls.
 import { test } from 'node:test';

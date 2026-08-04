@@ -1,12 +1,11 @@
-// WORKSHOP STEPS 1, 2, 3 & 4 — run a payment, then switch the PSP
+// WORKSHOP STEPS 1–2 — run a payment, then switch the PSP   (CLI-WALKTHROUGH.md)
 // ─────────────────────────────────────────────────────────────────────────────
 //   Step 1: run this with the default PSP   ->  npm run run:payment
-//   Step 2: read the output below — that's the "payment experience" for PSP-1
-//   Step 3: open config/active-psp.ts and change ACTIVE_PSP from 'stripe' to
-//           'adyen' (one line)
-//   Step 4: run it again                     ->  npm run run:payment
+//           (read the output — that's the normalized "payment experience")
+//   Step 2: open config/active-psp.ts, change ACTIVE_PSP 'stripe' -> 'adyen'
+//           (one line), then run it again    ->  npm run run:payment
 //
-// Notice the application code here does NOT change between steps 1 and 4. The
+// Notice the application code here does NOT change between steps 1 and 2. The
 // unified library makes the processor an interchangeable detail.
 // ─────────────────────────────────────────────────────────────────────────────
 

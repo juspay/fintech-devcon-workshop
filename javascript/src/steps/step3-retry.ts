@@ -1,4 +1,4 @@
-// WORKSHOP STEP 6b — Payment retry / fallback
+// WORKSHOP STEP 4 — Payment retry / fallback   (CLI-WALKTHROUGH.md)
 // ─────────────────────────────────────────────────────────────────────────────
 //   npm run run:retry
 //
