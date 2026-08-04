@@ -8,13 +8,13 @@
 //   - isConfigured: whether those credentials are actually present in .env
 //   - buildConfig : turns env vars into the `ConnectorConfig` the SDK expects
 //
-// ★ STEP 7 — "ADD A NEW PROCESSOR" ★
+// ★ STEP 5 — "ADD A NEW PROCESSOR" ★  (CLI-WALKTHROUGH.md)
 //   Adding a processor to the whole workshop is just adding ONE entry below.
 //   No orchestrator, routing, retry, or demo code has to change — they all read
 //   from this registry. `cybersource` is a worked example (already added), and
 //   `globalpay` is the hands-on exercise: it ships COMMENTED OUT at the bottom of
 //   PSP_REGISTRY — un-comment that one entry and GlobalPay appears everywhere
-//   (the /control processor list, the store, routing, and retry). See STEPS.md.
+//   (the /control processor list, the store, routing, and retry). See CLI-WALKTHROUGH.md.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { types } from 'hyperswitch-prism';
@@ -42,7 +42,7 @@ const isSet = (key: string): boolean => {
 
 // `Partial` (not `Record`) on purpose: a PSP name can exist in the PspName union
 // while its entry ships commented out — that's how `globalpay` below is left as the
-// Step 7 "add a processor" exercise. getPsp() throws for any name that isn't
+// Step 5 "add a processor" exercise. getPsp() throws for any name that isn't
 // registered yet, and listPsps() only returns the ones actually present here.
 export const PSP_REGISTRY: Partial<Record<PspName, PspEntry>> = {
   // ── PSP-1 ──────────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ export const PSP_REGISTRY: Partial<Record<PspName, PspEntry>> = {
     }),
   },
 
-  // ── PSP-3 (added in STEP 7 as the "new processor" example) ──────────────────
+  // ── PSP-3 (a worked "add a processor" example — Step 5) ─────────────────────
   cybersource: {
     displayName: 'Cybersource',
     currencies: ['USD', 'EUR', 'GBP'],
@@ -99,7 +99,7 @@ export const PSP_REGISTRY: Partial<Record<PspName, PspEntry>> = {
     }),
   },
 
-  // ★★★ STEP 7 — "ADD A NEW PROCESSOR": GLOBALPAY ★★★
+  // ★★★ STEP 5 — "ADD A NEW PROCESSOR": GLOBALPAY ★★★
   // GlobalPay is left commented out so you can add it live during the workshop.
   // Un-comment this one entry — that's the entire change. GlobalPay then shows up in
   // the /control processor list (add it + its keys), the store dropdown, and as a

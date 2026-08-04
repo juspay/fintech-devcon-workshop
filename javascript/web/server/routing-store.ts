@@ -14,7 +14,7 @@
 // participants build the plan up one rule at a time in /control. Boot restores
 // whatever orchestration-config.json holds (see control-state.ts). It resets on restart.
 // (The CLI's DEFAULT_ROUTING_PLAN in orchestrator/routing.ts is separate and still
-// carries the step-6a demo rules.)
+// carries the Step 3 routing demo rules.)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {

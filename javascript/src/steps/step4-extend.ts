@@ -1,4 +1,4 @@
-// WORKSHOP STEP 7 — Extend the library (new flow + new processor)
+// WORKSHOP STEP 5 — Extend the library (new processor + new flow)   (CLI-WALKTHROUGH.md)
 // ─────────────────────────────────────────────────────────────────────────────
 //   npm run run:extend
 //
@@ -16,7 +16,7 @@
 //       then VOID (cancel) the authorization before it is captured.
 //
 // See test/unified-payments.test.ts for the matching unit test that proves the
-// new flow's result-normalization is correct — that's STEP 8 (the test suite).
+// new flow's result-normalization is correct — that's STEP 6 (the test suite).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'dotenv/config';

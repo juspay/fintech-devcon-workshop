@@ -50,6 +50,12 @@ npm test                 # verify setup (no credentials needed)
 npm run web              # open http://localhost:3000/store and /control
 ```
 
+**Requirements:** Git and **Node.js 18, 20, or 22 LTS — not 23+** (newer Node bundles
+undici 7, which breaks the SDK's `undici@6` HTTP dispatcher and makes every connector call
+fail with *"Network Error: fetch failed"*; `.nvmrc` pins Node 22). Linux x64, macOS, or
+Windows via WSL2 (the SDK ships a prebuilt native x86_64 library — no Rust toolchain, no
+build step; scripts run TypeScript directly via `tsx`).
+
 The **web experience** puts the same unified library and orchestrator behind an
 e-commerce storefront (`/store`) and an orchestration **control plane** (`/control`).
 The store checkout lets you pick a specific processor or let the system route by
@@ -58,10 +64,15 @@ condition, and toggle **processor-specific** (browser-tokenized, PCI) vs
 See [`javascript/web/README.md`](./javascript/web/README.md).
 
 Under the hood, every control-plane action is the same core the CLI steps use, made
-editable. The commands behind the scenes (`npm run run:payment | run:routing | run:retry
-| run:extend`) and the code-level walkthrough live in
-[`javascript/STEPS.md`](./javascript/STEPS.md) and
-[`javascript/README.md`](./javascript/README.md).
+editable. Two companion docs go deeper — each with a distinct job, so nothing is repeated:
+
+- **[`javascript/CLI-WALKTHROUGH.md`](./javascript/CLI-WALKTHROUGH.md)** — the **pure-CLI
+  track**: the same concepts from the terminal (`npm run run:payment | run:routing |
+  run:retry | run:extend`), by editing code.
+- **[`javascript/README.md`](./javascript/README.md)** — **how the code is built**: the
+  layer diagram, codebase map, and request-flow diagram.
+- **[`javascript/web/README.md`](./javascript/web/README.md)** — the **web experience
+  internals** (store, control plane, refund, logs).
 
 ## Other languages
 

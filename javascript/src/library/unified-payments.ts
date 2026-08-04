@@ -247,7 +247,7 @@ export async function capture(
   }
 }
 
-// ★ STEP 7 — "ADD A NEW FLOW" ★
+// ★ STEP 5 — "ADD A NEW FLOW" ★  (CLI-WALKTHROUGH.md)
 // Void cancels an authorization that has NOT been captured yet. It did not exist
 // in the unified library until we added it here — and notice the shape is
 // identical to the other flows: build the PSP's PaymentClient, call the matching

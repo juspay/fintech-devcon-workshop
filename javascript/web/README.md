@@ -26,13 +26,11 @@ Both pages are served by one Express process (`web/server/index.ts`), so the rou
 plan you edit in `/control` is immediately used by the store's Automatic mode (shared
 in-memory state, restored at boot from `web/orchestration-config.json`).
 
-> **The workshop ships empty — a clean slate.** Out of the box there are **no routing
-> rules, no fallback, and no enabled processors**. That's deliberate: you build the
-> orchestrator up live. Your first moves in `/control` are to **add a processor** (🔑
-> its keys, or Add it to the active set) and then **add a rule or set the fallback**.
-> Until a processor is enabled and something routes, a checkout returns a "no
-> processor" error — that's the empty state, not a bug. `git checkout web/orchestration-config.json`
-> returns you to this clean slate at any time.
+> **Empty by design.** The workshop ships with no rules, no fallback, and no enabled
+> processors (see the [root README](../../README.md) sequence). So until you add a
+> processor in `/control` and something routes, a checkout returns a *"no processor"*
+> error — that's the empty state, not a bug. `git checkout web/orchestration-config.json`
+> returns you to the clean slate.
 
 ## The store checkout — request-level configuration
 
