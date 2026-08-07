@@ -109,9 +109,10 @@ suite needs **no** credentials.
 
 Attending the facilitated **devcon** session? Two things to grab:
 
-- **Sandbox credentials** — download [`creds.env`](https://sandbox.assets.juspay.in/test/devcon/creds.env)
-  and save it as `javascript/.env` (it drops in place of the `.env` you'd copy from
-  `.env.example`) to get real sandbox approvals for every processor.
+- **Sandbox credentials** — a `creds.env` with sandbox keys for every processor is
+  shared **at the session** (download link posted then). Save it as `javascript/.env`
+  (it drops in place of the `.env` you'd copy from `.env.example`) to get real sandbox
+  approvals for every processor.
 - **Collaboration channel** — join the temporary **Zulip** channel to ask questions and
   share as you go:
   [potentially-invisible-gigs.zulipchat.com](https://potentially-invisible-gigs.zulipchat.com/join/477ekeq2niffdt4rfqco6z2a/)
