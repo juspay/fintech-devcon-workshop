@@ -586,6 +586,21 @@ main h2 {
   min-height: 20px;
 }
 
+/* x402-inspired: the 402 payment terms shown between step ① and step ② */
+.x402-terms {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #6366f1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 10px 0 14px;
+  font-size: 0.85rem;
+}
+.x402-terms.hidden { display: none; }
+.x402-terms-head { display: flex; align-items: center; gap: 8px; }
+.x402-terms-body { margin-top: 6px; color: #334155; word-break: break-word; }
+.x402-terms-note { margin-top: 6px; color: #64748b; font-size: 0.8rem; }
+
 .submit-btn {
   width: 100%;
   background: #2563eb;

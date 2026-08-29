@@ -29,6 +29,7 @@ let psps = [];
 let mode = 'pci';
 let processor = 'auto';
 let pciSession = null;
+let x402Challenge = null; // the 402 requirements from step ①, until settled in step ②
 
 // DOM
 const el = (id) => document.getElementById(id);
@@ -42,6 +43,10 @@ const loadingEl = el('loading');
 const rawContainer = el('raw-checkout-container');
 const rawForm = el('raw-card-form');
 const rawSubmitBtn = el('raw-submit-btn');
+const x402RequestBtn = el('x402-request-btn');
+const x402RequestText = el('x402-request-text');
+const x402RequestSpinner = el('x402-request-spinner');
+const x402Terms = el('x402-terms');
 const pciInitContainer = el('pci-init-container');
 const pciInitBtn = el('pci-init-btn');
 const stripeContainer = el('stripe-checkout-container');
@@ -94,7 +99,7 @@ function renderOrderSummary() {
       </div>`;
   }).join('');
   orderTotalEl.textContent = formatPrice(totalAmount, currency);
-  el('raw-btn-text').textContent = `Pay ${formatPrice(totalAmount, currency)}`;
+  el('raw-btn-text').textContent = `② Authorize & pay ${formatPrice(totalAmount, currency)} (X-PAYMENT)`;
 }
 
 async function loadPsps() {
@@ -121,8 +126,10 @@ function setupConfigUI() {
   // mounted connector SDK / stale session and refreshes the sample cards).
   processorSelect.addEventListener('change', onProcessorChange);
 
-  rawSubmitBtn.addEventListener('click', payRaw);
-  rawForm.addEventListener('submit', (e) => { e.preventDefault(); payRaw(); });
+  x402RequestBtn.addEventListener('click', requestTerms);
+  rawSubmitBtn.addEventListener('click', submitPayment);
+  // Enter in the card form settles if terms are in hand, else fetches them first.
+  rawForm.addEventListener('submit', (e) => { e.preventDefault(); x402Challenge ? submitPayment() : requestTerms(); });
   pciInitBtn.addEventListener('click', initPci);
   el('stripe-submit-btn').addEventListener('click', onStripeSubmit);
 
@@ -171,6 +178,7 @@ function resetPaymentUI() {
   rawContainer.classList.toggle('hidden', !isRaw);
   pciInitContainer.classList.toggle('hidden', isRaw);
   pciInitBtn.disabled = false;
+  resetX402(); // a fresh 402 handshake per mode/processor selection
   renderSampleCards();
 }
 
@@ -281,7 +289,52 @@ function validateCard(c) {
   return null;
 }
 
-async function payRaw() {
+// UTF-8-safe base64 for the X-PAYMENT header payload.
+function b64(obj) {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  let bin = '';
+  bytes.forEach((byte) => { bin += String.fromCharCode(byte); });
+  return btoa(bin);
+}
+
+// Processor-agnostic pay uses an x402-INSPIRED handshake (a custom `card` scheme —
+// NOT on-chain x402; see web/server/x402.ts), split into two explicit user steps:
+//   ① requestTerms(): POST /checkout with no card → server replies 402 + `accepts`.
+//   ② submitPayment(): resubmit with an X-PAYMENT header carrying the card → settle.
+
+// ① Fetch the payment terms. Deliberately requires NO card details.
+async function requestTerms() {
+  el('raw-error').textContent = '';
+  setX402RequestLoading(true);
+  hideResult();
+  try {
+    const challenge = await fetch('/api/store/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        minorAmount: checkoutData.totalAmount,
+        currency: checkoutData.currency,
+        processor,
+      }),
+    });
+    if (challenge.status !== 402) {
+      const d = await challenge.json().catch(() => ({}));
+      throw new Error(d.error || `Expected 402 Payment Required, got HTTP ${challenge.status}`);
+    }
+    x402Challenge = await challenge.json();
+    renderX402Terms(x402Challenge);
+    rawSubmitBtn.disabled = false;         // step ② is now available
+    x402RequestText.textContent = '✓ Terms received — re-request';
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    setX402RequestLoading(false);
+  }
+}
+
+// ② Provide the card and submit the X-PAYMENT envelope to settle.
+async function submitPayment() {
+  if (!x402Challenge) { el('raw-error').textContent = 'Request payment terms first (step ①).'; return; }
   const card = readCardForm();
   const err = validateCard(card);
   if (err) { el('raw-error').textContent = err; return; }
@@ -290,26 +343,78 @@ async function payRaw() {
   setRawLoading(true);
   hideResult();
   try {
-    const res = await fetch('/api/store/checkout', {
+    // Retry/fallback is a control-plane policy (see /control), applied server-side.
+    const payment = {
+      x402Version: x402Challenge.x402Version,
+      scheme: 'card',
+      minorAmount: checkoutData.totalAmount,
+      currency: checkoutData.currency,
+      processor,
+      card,
+    };
+    const settle = await fetch('/api/store/checkout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        minorAmount: checkoutData.totalAmount,
-        currency: checkoutData.currency,
-        processor,
-        // Retry/fallback is now a control-plane policy (see /control), applied
-        // server-side for Automatic routing — no per-request flag here.
-        card,
-      }),
+      headers: { 'Content-Type': 'application/json', 'X-PAYMENT': b64(payment) },
+      body: JSON.stringify({}),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Checkout failed');
-    renderRawResult(data);
-  } catch (e) {
-    showError(e.message);
-  } finally {
+    const data = await settle.json();
+    if (!settle.ok) throw new Error(data.error || 'Checkout failed');
+    data._x402 = {
+      accepts: (x402Challenge.accepts && x402Challenge.accepts[0]) || null,
+      response: settle.headers.get('X-PAYMENT-RESPONSE') || '',
+    };
     setRawLoading(false);
+    renderRawResult(data);
+    resetX402(); // consumed — a fresh 402 is required for another attempt
+  } catch (e) {
+    setRawLoading(false);
+    showError(e.message);
   }
+}
+
+// Render the 402 terms between the two steps.
+function renderX402Terms(req) {
+  const a = req.accepts && req.accepts[0];
+  const procs = a ? a.processors.join(', ') : '';
+  x402Terms.innerHTML = `
+    <div class="x402-terms-head"><span class="badge badge-muted">402 Payment Required</span>
+      <span class="mono" style="color:#94a3b8">x402-inspired · not on-chain</span></div>
+    <div class="x402-terms-body mono">scheme <strong>${a ? escapeHtml(a.scheme) : '—'}</strong>
+      · ${a ? escapeHtml(a.maxAmountRequired) : '—'} ${a ? escapeHtml(a.currency) : ''}
+      · accepts: ${escapeHtml(procs)}</div>
+    <div class="x402-terms-note">Now provide the card and submit the <span class="mono">X-PAYMENT</span> to settle ↓</div>`;
+  x402Terms.classList.remove('hidden');
+}
+
+// Clear the handshake state so the next attempt starts from a fresh 402.
+function resetX402() {
+  x402Challenge = null;
+  if (x402Terms) { x402Terms.classList.add('hidden'); x402Terms.innerHTML = ''; }
+  if (rawSubmitBtn) rawSubmitBtn.disabled = true;
+  if (x402RequestText) x402RequestText.textContent = '① Request payment terms (402)';
+}
+
+function setX402RequestLoading(on) {
+  x402RequestBtn.disabled = on;
+  x402RequestText.classList.toggle('hidden', on);
+  x402RequestSpinner.classList.toggle('hidden', !on);
+}
+
+// Render the x402-inspired handshake steps for the result trace.
+function x402HandshakeHtml(x) {
+  if (!x) return '';
+  const procs = x.accepts ? x.accepts.processors.join(', ') : '';
+  let receipt = '';
+  try { if (x.response) receipt = JSON.stringify(JSON.parse(atob(x.response))); } catch { /* ignore */ }
+  return `
+    <div class="trace-summary" style="margin-bottom:10px">
+      <div><span class="badge badge-muted">x402-inspired handshake</span>
+        <span class="mono" style="color:#94a3b8">demo · not on-chain x402</span></div>
+      <div class="attempt-detail" style="margin-top:6px;line-height:1.7">
+        ① <span class="mono">POST /checkout</span> → <strong>402 Payment Required</strong>${procs ? ` · accepts: <span class="mono">${escapeHtml(procs)}</span>` : ''}<br>
+        ② resubmit with <span class="mono">X-PAYMENT</span> (scheme=<span class="mono">card</span>) → <strong>200 OK</strong>${receipt ? `<br>③ <span class="mono">X-PAYMENT-RESPONSE</span> ${escapeHtml(receipt)}` : ''}
+      </div>
+    </div>`;
 }
 
 function renderRawResult(data) {
@@ -335,7 +440,7 @@ function renderRawResult(data) {
   showResult(data.succeeded,
     data.succeeded ? 'Payment Successful!' : 'Payment Not Completed',
     data.succeeded ? `Charged via ${describePsp(data.winningPsp)}.` : 'No processor approved this payment.',
-    summary + attempts);
+    x402HandshakeHtml(data._x402) + summary + attempts);
   if (data.succeeded) clearPurchasedItems();
 }
 
