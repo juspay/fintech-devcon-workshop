@@ -47,6 +47,29 @@ in-memory state, restored at boot from `web/orchestration-config.json`).
 The result panel prints the full **orchestration trace**: which PSP was routed to and
 why, and every attempt with its normalized status.
 
+### x402-inspired checkout handshake (processor-agnostic) — internal demo
+
+> **Not part of the workshop steps, and not real x402.** This is a demo overlay that
+> borrows the **HTTP shape** of the [x402 protocol](https://x402.org) over the existing
+> card rails. Real x402 settles **on-chain** — its `X-PAYMENT` payload is a signed
+> stablecoin transfer authorization (schemes `exact`/`upto`/`batch-settlement`), verified
+> by a facilitator. Here we define a custom **`card` scheme** whose payload carries card
+> details, so there is no wallet, chain, or facilitator. See `web/server/x402.ts`.
+
+The processor-agnostic **Pay** button now runs a two-step handshake instead of a single POST:
+
+1. `POST /api/store/checkout` with the order intent (no card) → server replies
+   **`402 Payment Required`** with an `accepts` list (amount, currency, the enabled
+   processors + `auto`).
+2. The browser resubmits with an **`X-PAYMENT`** header — base64 JSON
+   `{ scheme: "card", minorAmount, currency, processor, card }` — and the server decodes
+   it and settles through the **same** `authorize()` / `withRetry()` path as before,
+   returning an **`X-PAYMENT-RESPONSE`** receipt header. Routing, retry, and BIN rules are
+   unchanged.
+
+The store result panel shows the handshake steps; the server logs them under the `[x402]`
+scope. The **processor-specific (PCI)** flow is untouched.
+
 **Retry / fallback** is a **control-plane policy** (toggle in `/control`): when on,
 Automatic routing tries the routed PSP first, then the others in registry order until one
 approves. It only applies to **processor-agnostic** checkout — a browser token is pinned

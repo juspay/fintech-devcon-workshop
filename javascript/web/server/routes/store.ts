@@ -25,6 +25,7 @@ import { getPsp, listPsps, type PspName } from '../../../config/psp-registry.js'
 import { listActive, isActive } from '../active-psps.js';
 import { isRetryEnabled } from '../retry-policy.js';
 import { createClientSession, fetchGlobalPayServerToken, isTokenizable } from '../sessions.js';
+import { buildRequirements, decodePayment, encodeReceipt } from '../x402.js';
 import { createLogger } from '../logger.js';
 
 const router = Router();
@@ -32,6 +33,7 @@ const log = createLogger('store');
 const routeLog = createLogger('routing');
 const orch = createLogger('orchestrator');
 const pciLog = createLogger('pci');
+const x402Log = createLogger('x402');
 
 // Mask a PAN to the last 4 digits — NEVER log full card numbers or CVC.
 const maskPan = (pan: string): string => `****${String(pan || '').replace(/\D/g, '').slice(-4)}`;
@@ -89,29 +91,57 @@ router.get('/products', (_req, res) => {
 });
 
 // ── RAW card (non-PCI) checkout ─────────────────────────────────────────────
+// ── Processor-agnostic (raw) checkout via an x402-INSPIRED handshake ──────────
+// Step 1 (no X-PAYMENT header): reply 402 Payment Required with an `accepts` list.
+// Step 2 (X-PAYMENT header):    decode the custom `card` scheme payload and settle
+//                               through the SAME authorize()/withRetry() path.
+// This is x402-shaped, NOT interoperable on-chain x402 — see web/server/x402.ts.
 router.post('/checkout', async (req, res) => {
-  const minorAmount = parseInt(String(req.body?.minorAmount), 10);
-  const currency = String(req.body?.currency || '').toUpperCase();
-  const processor = req.body?.processor; // 'auto' | PspName
-  const card = pickCard(req.body?.card);
+  const reqId = req.reqId;
+  const xPayment = req.header('X-PAYMENT');
 
-  if (Number.isNaN(minorAmount) || minorAmount <= 0 || !currency) {
-    return res.status(400).json({ error: 'minorAmount (positive) and currency are required' });
+  // ── Step 1: no payment yet → advertise requirements as 402 ──────────────────
+  if (!xPayment) {
+    const minorAmount = parseInt(String(req.body?.minorAmount), 10);
+    const currency = String(req.body?.currency || '').toUpperCase();
+    const processor = req.body?.processor;
+    if (Number.isNaN(minorAmount) || minorAmount <= 0 || !currency) {
+      return res.status(400).json({ error: 'minorAmount (positive) and currency are required' });
+    }
+    const auto = processor === 'auto' || processor === undefined;
+    if (!auto && !isPsp(processor)) return res.status(400).json({ error: `unknown processor "${processor}"` });
+    if (!auto && !isActive(processor)) {
+      return res.status(400).json({ error: `${getPsp(processor).displayName} is not an enabled processor.` });
+    }
+    const requirements = buildRequirements({ minorAmount, currency, processors: listActive() });
+    x402Log.info('402 challenge issued', {
+      reqId, amount: minorAmount, currency, accepts: requirements.accepts[0].processors.join(','),
+    });
+    res.setHeader('WWW-Authenticate', 'x402'); // x402-style hint that payment is required
+    return res.status(402).json(requirements);
   }
+
+  // ── Step 2: settle — decode the X-PAYMENT header (custom `card` scheme) ──────
+  const { payment, error: decodeErr } = decodePayment(xPayment);
+  if (!payment) return res.status(400).json({ error: decodeErr ?? 'invalid X-PAYMENT header' });
+  x402Log.info('X-PAYMENT received', {
+    reqId, scheme: payment.scheme, processor: String(payment.processor),
+    amount: payment.minorAmount, currency: payment.currency,
+  });
+
+  const { minorAmount, currency, processor } = payment;
+  const card = pickCard(payment.card);
   const automatic = processor === 'auto' || processor === undefined;
-  if (!automatic && !isPsp(processor)) {
-    return res.status(400).json({ error: `unknown processor "${processor}"` });
-  }
+  if (!automatic && !isPsp(processor)) return res.status(400).json({ error: `unknown processor "${processor}"` });
   if (!automatic && !isActive(processor)) {
     return res.status(400).json({ error: `${getPsp(processor).displayName} is not an enabled processor.` });
   }
   // Retry/fallback is a control-plane policy and only meaningful when routing (Automatic).
   const retryEnabled = automatic && isRetryEnabled();
-  const reqId = req.reqId;
 
   const order: Order = { merchantTransactionId: newTxnId(), minorAmount, currency, card };
   log.info('checkout requested', {
-    reqId, mode: 'raw', processor: automatic ? 'auto' : String(processor),
+    reqId, mode: 'raw', via: 'x402', processor: automatic ? 'auto' : String(processor),
     amount: minorAmount, currency, retry: retryEnabled, card: maskPan(card.cardNumber), txn: order.merchantTransactionId,
   });
 
@@ -155,8 +185,14 @@ router.post('/checkout', async (req, res) => {
     });
     log[result.succeeded ? 'info' : 'warn']('checkout complete',
       { reqId, succeeded: result.succeeded, winningPsp: result.winningPsp, attempts: result.attempts.length });
+    // Mirror x402's settlement receipt on the response.
+    res.setHeader('X-PAYMENT-RESPONSE', encodeReceipt({
+      scheme: payment.scheme, success: result.succeeded,
+      processor: result.winningPsp ?? primary, transactionId: order.merchantTransactionId,
+    }));
     return res.json({
       mode: 'raw',
+      via: 'x402',
       automatic,
       retryEnabled,
       routedTo: primary,
