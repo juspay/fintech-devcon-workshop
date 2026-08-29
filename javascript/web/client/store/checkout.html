@@ -80,9 +80,18 @@
           <p>Initializing secure payment...</p>
         </div>
 
-        <!-- Processor-agnostic (raw) card form. The card is posted to the server and
-             sent to the routed processor via the unified library's authorize(). -->
+        <!-- Processor-agnostic (raw) checkout via an x402-inspired 2-step handshake:
+             ① request payment terms (402, no card) → ② send the card in an X-PAYMENT
+             header to settle. See web/server/x402.ts (not on-chain x402). -->
         <div id="raw-checkout-container">
+          <!-- ① Fetch the payment terms — no card details needed yet. -->
+          <button id="x402-request-btn" class="submit-btn" type="button">
+            <span id="x402-request-text">① Request payment terms (402)</span>
+            <span id="x402-request-spinner" class="btn-spinner hidden"><div class="spinner-small"></div></span>
+          </button>
+          <div id="x402-terms" class="x402-terms hidden"></div>
+
+          <!-- ② Provide the card and submit the X-PAYMENT to settle. -->
           <form id="raw-card-form" class="card-form" autocomplete="off" novalidate>
             <label>Card number
               <input id="cf-number" inputmode="numeric" placeholder="4111 1111 1111 1111" value="4111 1111 1111 1111">
@@ -102,8 +111,8 @@
               <input id="cf-name" placeholder="Jane Workshop" value="Jane Workshop">
             </label>
           </form>
-          <button id="raw-submit-btn" class="submit-btn" type="button">
-            <span id="raw-btn-text">Pay</span>
+          <button id="raw-submit-btn" class="submit-btn" type="button" disabled>
+            <span id="raw-btn-text">② Authorize &amp; pay (send X-PAYMENT)</span>
             <span id="raw-btn-spinner" class="btn-spinner hidden"><div class="spinner-small"></div></span>
           </button>
           <div id="raw-error" class="card-errors"></div>
